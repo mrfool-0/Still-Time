@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Stilltime</string>
+    <string name="dream_name">Stilltime clock</string>
+    <string name="tap_to_customize">Tap anywhere to customize</string>
+    <string name="customize">Customize</string>
+    <string name="clock_style">Clock style</string>
+    <string name="display">Display</string>
+    <string name="show_seconds">Show seconds</string>
+    <string name="show_date">Show date</string>
+    <string name="show_battery">Show battery</string>
+    <string name="keep_screen_on">Keep screen awake</string>
+    <string name="burn_in_protection">Pixel-shift protection</string>
+    <string name="low_power_pick">LOW-POWER PICK</string>
+    <string name="low_power_hint">Use Noir, turn seconds off, and choose Night brightness. Actual savings depend on the display.</string>
+    <string name="time_format">Time format</string>
+    <string name="format_system">System</string>
+    <string name="format_12_hour">12-hour</string>
+    <string name="format_24_hour">24-hour</string>
+    <string name="brightness">Brightness</string>
+    <string name="brightness_system">System</string>
+    <string name="brightness_night">Night</string>
+    <string name="brightness_cozy">Cozy</string>
+    <string name="brightness_bright">Bright</string>
+    <string name="accent_color">Accent</string>
+    <string name="open_screensaver_settings">Set as screensaver</string>
+    <string name="screensaver_hint">Choose Stilltime in Android’s screen saver settings.</string>
+    <string name="close_settings">Close settings</string>
+    <string name="battery_percent">%1$d%% battery</string>
+    <string name="charging_percent">Charging · %1$d%%</string>
+    <string name="style_pebble">Pebble</string>
+    <string name="style_flip">Flip</string>
+    <string name="style_editorial">Editorial</string>
+    <string name="style_orbit">Orbit</string>
+    <string name="style_solar">Solar</string>
+    <string name="style_muse">Muse</string>
+    <string name="style_noir">Noir</string>
+    <string name="motivation_feed">Muse feed</string>
+    <string name="motivation_all">Everything</string>
+    <string name="motivation_wisdom">Famous wisdom</string>
+    <string name="motivation_life_facts">Life facts</string>
+    <string name="motivation_anime">Anime</string>
+    <string name="motivation_rotation_hint">A new sourced thought appears every 15 minutes.</string>
+    <string name="view_source">View source</string>
+</resources>

@@ -1,0 +1,33 @@
+package com.mrfool.stilltime.power
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.time.ZonedDateTime
+
+@Composable
+fun rememberClockMoment(
+    showSeconds: Boolean,
+    isActive: Boolean,
+): State<ZonedDateTime> = produceState(
+    initialValue = ZonedDateTime.now(),
+    key1 = showSeconds,
+    key2 = isActive,
+) {
+    if (!isActive) return@produceState
+
+    val intervalMillis = if (showSeconds) SECOND_MILLIS else MINUTE_MILLIS
+    while (this.isActive) {
+        val nowMillis = System.currentTimeMillis()
+        value = ZonedDateTime.now()
+        val untilBoundary = intervalMillis - (nowMillis % intervalMillis)
+        delay(untilBoundary.coerceAtLeast(MIN_DELAY_MILLIS) + CLOCK_SETTLE_MILLIS)
+    }
+}
+
+private const val SECOND_MILLIS = 1_000L
+private const val MINUTE_MILLIS = 60_000L
+private const val MIN_DELAY_MILLIS = 16L
+private const val CLOCK_SETTLE_MILLIS = 12L
