@@ -1,14 +1,18 @@
 # Stilltime research brief
 
-Research was performed on 7 September 2026. The goal was not to copy an existing clock, but to validate the platform architecture, identify defensible low-power techniques, survey useful interaction patterns, and build a traceable content library.
+Initial research was performed on 7 September 2026, with a wallpaper and Spotify update on 9 September. The platform architecture, low-power techniques, and traceable content library are documented below; the v1.1 integration is detailed in [SPOTIFY.md](SPOTIFY.md).
 
 ## Conclusions that shaped the app
+
+### Menu and motion polish — 10 September 2026
+
+The customization panel now uses scaled, static renders of the real clock faces, a clear selected state, grouped display controls, and persistent Close/Done actions. Preview rendering never starts a ticker or Spotify connection. Flip uses an event-triggered `Animatable`, two clipped leaves rotating around a center hinge, and draw-phase shading. Layer transforms read animation state in `graphicsLayer`, following Android's [Compose animation guidance](https://developer.android.com/develop/ui/compose/animation/quick-guide?hl=en) and [graphics modifiers guidance](https://developer.android.com/develop/ui/compose/graphics/draw/modifiers). Each transition is finite; there is no idle animation loop. Animation can be disabled separately and is stopped when the face is hidden. This is a low-work design, not a measured battery-life claim.
 
 ### Use two platform surfaces
 
 Android documents `DreamService` as the system mechanism for screensavers that run while a charging device is idle or docked. Stilltime therefore exposes the same Compose UI in both a normal full-screen Activity and a non-interactive `DreamService`. The Activity is the configurable desk mode; the dream is the system-managed charging experience.
 
-Android's current power guidance says to use the lightest suitable API and warns that wake locks can drain battery quickly. For a visible clock, the documented option is `keepScreenOn`. Stilltime scopes that flag to the foreground window and removes it on disposal. It deliberately has no `WAKE_LOCK`, alarm, job, foreground-service, or network permission.
+Android's current power guidance says to use the lightest suitable API and warns that wake locks can drain battery quickly. For a visible clock, the documented option is `keepScreenOn`. Stilltime scopes that flag to the foreground window and removes it on disposal. It has no `WAKE_LOCK`, alarm scheduling, job, or foreground service. Version 1.1 adds internet permission for its optional Spotify integration.
 
 Sources:
 
@@ -54,11 +58,11 @@ The following repositories were evaluated as product benchmarks. No source code 
 | [Material Clock](https://github.com/rbouaf/material-clock) | Shows a modern Compose clock can remain expressive with careful typography and strong component hierarchy. | MIT, but Stilltime uses an independent design and implementation. |
 | [ClockDesk](https://github.com/nx-d1frnt/ClockDesk) | Reinforces pixel drift and adaptive rendering as useful always-on-display features. | Feature comparison only; no code incorporated. |
 
-The survey led to a deliberately narrower scope than feature-heavy alarm/radio/weather clocks. Every data source, permission, receiver, and animation has an idle-energy cost. Stilltime keeps only glanceable clock, date, battery, brightness, style, and source-linked inspiration features.
+The original survey focused on glanceable clock, date, battery, brightness, style, and source-linked inspiration. Version 1.1 adds local wallpapers and Spotify playback control; the latter is isolated to the Spotify screen so other themes do not retain a media connection.
 
 ## Visual design synthesis
 
-Seven faces cover distinct use cases without image assets or runtime effects:
+The original seven faces cover distinct use cases without image assets or runtime effects:
 
 - **Pebble** — soft gradients, rounded metadata pills, and a playful sparkle.
 - **Flip** — warm, dimensional split-flap cards without flip animation.

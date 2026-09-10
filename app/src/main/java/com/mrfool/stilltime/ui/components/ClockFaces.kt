@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,7 +29,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -76,6 +73,7 @@ fun ClockFace(
     preferences: ClockPreferences,
     readout: ClockReadout,
     modifier: Modifier = Modifier,
+    animationActive: Boolean = true,
 ) {
     val accent = remember(preferences.accent) { Color(preferences.accent.seed) }
     val accessibleModifier = modifier.clearAndSetSemantics {
@@ -84,12 +82,18 @@ fun ClockFace(
 
     when (preferences.style) {
         ClockStyle.PEBBLE -> PebbleClock(preferences, readout, accent, accessibleModifier)
-        ClockStyle.FLIP -> FlipClock(preferences, readout, accent, accessibleModifier)
+        ClockStyle.FLIP -> FlipClock(preferences, readout, accent, accessibleModifier, animationActive)
         ClockStyle.EDITORIAL -> EditorialClock(preferences, readout, accent, accessibleModifier)
         ClockStyle.ORBIT -> OrbitClock(preferences, readout, accent, accessibleModifier)
         ClockStyle.SOLAR -> SolarClock(preferences, readout, accent, accessibleModifier)
         ClockStyle.MUSE -> MuseClock(preferences, readout, accent, accessibleModifier)
         ClockStyle.NOIR -> NoirClock(preferences, readout, accent, accessibleModifier)
+        ClockStyle.PANORAMA -> PanoramaClock(preferences, readout, false, accessibleModifier)
+        ClockStyle.REDLINE -> PanoramaClock(preferences, readout, true, accessibleModifier)
+        ClockStyle.CALENDAR -> CalendarClock(preferences, readout, accessibleModifier)
+        ClockStyle.CHROMA -> ChromaClock(preferences, readout, accessibleModifier)
+        ClockStyle.WALLPAPER -> WallpaperClock(preferences, readout, accessibleModifier)
+        ClockStyle.SPOTIFY -> Unit // Interactive Spotify surface is hosted by StandbyScreen.
     }
 }
 
@@ -245,10 +249,11 @@ private fun FlipClock(
     readout: ClockReadout,
     accent: Color,
     modifier: Modifier,
+    animationActive: Boolean,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isPortrait = maxHeight > maxWidth
-        val cardHeight = if (isPortrait) maxWidth * 0.54f else maxHeight * 0.56f
+        val cardHeight = if (isPortrait) maxWidth * 0.47f else maxHeight * 0.56f
         val values = buildList {
             add(readout.time.paddedHour)
             add(readout.time.minute)
@@ -260,14 +265,6 @@ private fun FlipClock(
                 brush = Brush.verticalGradient(
                     listOf(Color(0xFF211D1B), Color(0xFF0D0C0C)),
                 ),
-            )
-            val lineY = size.height * 0.77f
-            drawLine(
-                color = accent.copy(alpha = 0.18f),
-                start = Offset(size.width * 0.08f, lineY),
-                end = Offset(size.width * 0.92f, lineY),
-                strokeWidth = 1.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 10.dp.toPx())),
             )
         }
 
@@ -282,15 +279,16 @@ private fun FlipClock(
                 horizontalArrangement = Arrangement.spacedBy(if (isPortrait) 8.dp else 14.dp),
             ) {
                 values.forEachIndexed { index, value ->
-                    FlipCard(
+                    SplitFlapCard(
                         value = value,
                         label = when (index) {
-                            0 -> "HOUR"
+                            0 -> readout.time.period?.let { "HOUR · $it" } ?: "HOUR"
                             1 -> "MIN"
                             else -> "SEC"
                         },
                         accent = accent,
-                        compact = values.size == 3,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        animate = animationActive && preferences.flipAnimation,
                     )
                 }
             }
@@ -303,9 +301,11 @@ private fun FlipClock(
                 Text(
                     text = if (preferences.showDate) readout.longDate.uppercase() else "STILLTIME",
                     color = Color(0xFFE9E1D8).copy(alpha = 0.68f),
-                    fontSize = 11.sp,
-                    letterSpacing = 2.sp,
+                    modifier = Modifier.weight(1f).padding(end = 12.dp),
+                    fontSize = 10.sp,
+                    letterSpacing = 1.sp,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 if (preferences.showBattery) {
                     Text(
@@ -317,60 +317,6 @@ private fun FlipClock(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun RowScope.FlipCard(
-    value: String,
-    label: String,
-    accent: Color,
-    compact: Boolean,
-) {
-    Surface(
-        modifier = Modifier.weight(1f).fillMaxHeight(),
-        color = Color(0xFF292625),
-        shape = RoundedCornerShape(22.dp),
-        shadowElevation = 12.dp,
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.48f)
-                    .align(Alignment.TopCenter)
-                    .background(Color.White.copy(alpha = 0.025f)),
-            )
-            Text(
-                text = value,
-                color = Color(0xFFF5EEE7),
-                fontSize = if (compact) 62.sp else 82.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = (-5).sp,
-                maxLines = 1,
-            )
-            HorizontalDivider(
-                modifier = Modifier.align(Alignment.Center),
-                thickness = 2.dp,
-                color = Color(0xFF100F0F),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth().align(Alignment.Center),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Box(Modifier.size(width = 5.dp, height = 18.dp).background(Color(0xFF0A0909)))
-                Box(Modifier.size(width = 5.dp, height = 18.dp).background(Color(0xFF0A0909)))
-            }
-            Text(
-                text = label,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
-                color = accent.copy(alpha = 0.74f),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp,
-            )
         }
     }
 }

@@ -13,15 +13,22 @@ android {
         applicationId = "com.mrfool.stilltime"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
+
+        val spotifyClientId = providers.gradleProperty("SPOTIFY_CLIENT_ID").orElse("").get()
+        val spotifyRedirectUri = providers.gradleProperty("SPOTIFY_REDIRECT_URI")
+            .orElse("stilltime://spotify-callback").get()
+        fun quoted(value: String) = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+        buildConfigField("String", "SPOTIFY_CLIENT_ID", quoted(spotifyClientId))
+        buildConfigField("String", "SPOTIFY_REDIRECT_URI", quoted(spotifyRedirectUri))
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
         compose = true
-        buildConfig = false
+        buildConfig = true
     }
 
     compileOptions {
@@ -60,6 +67,8 @@ android {
 }
 
 dependencies {
+    implementation(files("libs/spotify-app-remote-0.8.0.aar"))
+    implementation("com.google.code.gson:gson:2.14.0")
     val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
 
     implementation(composeBom)

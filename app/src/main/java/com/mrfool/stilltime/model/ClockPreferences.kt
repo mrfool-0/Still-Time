@@ -11,6 +11,12 @@ enum class ClockStyle(@StringRes val labelRes: Int) {
     SOLAR(R.string.style_solar),
     MUSE(R.string.style_muse),
     NOIR(R.string.style_noir),
+    PANORAMA(R.string.style_panorama),
+    REDLINE(R.string.style_redline),
+    CALENDAR(R.string.style_calendar),
+    CHROMA(R.string.style_chroma),
+    WALLPAPER(R.string.style_wallpaper),
+    SPOTIFY(R.string.style_spotify),
     ;
 
     fun next(): ClockStyle = entries[(ordinal + 1) % entries.size]
@@ -60,4 +66,10 @@ data class ClockPreferences(
     val showBattery: Boolean = true,
     val keepScreenOn: Boolean = true,
     val burnInProtection: Boolean = true,
+    val wallpaper: WallpaperChoice = WallpaperChoice.MOON,
+    val wallpaperLayout: WallpaperLayout = WallpaperLayout.CINEMA,
+    val wallpaperDim: WallpaperDim = WallpaperDim.BALANCED,
+    val typography: ClockTypography = ClockTypography.ROUNDED,
+    val spotifyMarquee: Boolean = true,
+    val flipAnimation: Boolean = true,
 )

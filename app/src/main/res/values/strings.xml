@@ -35,6 +35,12 @@
     <string name="style_solar">Solar</string>
     <string name="style_muse">Muse</string>
     <string name="style_noir">Noir</string>
+    <string name="style_panorama">Panorama</string>
+    <string name="style_redline">Redline</string>
+    <string name="style_calendar">Night calendar</string>
+    <string name="style_chroma">Chroma</string>
+    <string name="style_wallpaper">Wallpapers</string>
+    <string name="style_spotify">Spotify</string>
     <string name="motivation_feed">Muse feed</string>
     <string name="motivation_all">Everything</string>
     <string name="motivation_wisdom">Famous wisdom</string>

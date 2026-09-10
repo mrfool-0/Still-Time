@@ -10,6 +10,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -33,6 +36,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -46,6 +50,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +66,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -80,11 +88,19 @@ import com.mrfool.stilltime.model.ClockStyle
 import com.mrfool.stilltime.model.MotivationCategory
 import com.mrfool.stilltime.model.MotivationEntry
 import com.mrfool.stilltime.model.TimeFormatPreference
+import com.mrfool.stilltime.model.WallpaperChoice
+import com.mrfool.stilltime.model.WallpaperLayout
+import com.mrfool.stilltime.model.WallpaperDim
+import com.mrfool.stilltime.model.ClockTypography
+import com.mrfool.stilltime.spotify.SpotifyController
+import com.mrfool.stilltime.ui.components.SpotifyClock
 import com.mrfool.stilltime.power.BurnInOffset
 import com.mrfool.stilltime.power.rememberBatteryState
 import com.mrfool.stilltime.power.rememberClockMoment
 import com.mrfool.stilltime.ui.components.ClockFace
 import com.mrfool.stilltime.ui.components.ClockReadout
+import com.mrfool.stilltime.ui.components.ThemePreview
+import com.mrfool.stilltime.ui.components.designNote
 import com.mrfool.stilltime.util.TimeTextFormatter
 import kotlinx.coroutines.delay
 
@@ -94,21 +110,24 @@ fun StandbyScreen(
     settingsStore: SettingsStore,
     tickerActive: Boolean,
     showControls: Boolean,
+    connectionActive: Boolean = tickerActive,
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val locale = configuration.locales[0]
+    val secondsEnabled = preferences.showSeconds && preferences.style !in
+        setOf(ClockStyle.SPOTIFY, ClockStyle.WALLPAPER, ClockStyle.CHROMA)
     val use24HourTime = TimeTextFormatter.uses24HourTime(
         preference = preferences.timeFormat,
         systemUses24HourTime = DateFormat.is24HourFormat(context),
     )
     val moment by rememberClockMoment(
-        showSeconds = preferences.showSeconds,
+        showSeconds = secondsEnabled,
         isActive = tickerActive,
     )
     val battery by rememberBatteryState()
-    val time = remember(moment, use24HourTime, preferences.showSeconds, locale) {
-        TimeTextFormatter.time(moment, use24HourTime, preferences.showSeconds, locale)
+    val time = remember(moment, use24HourTime, secondsEnabled, locale) {
+        TimeTextFormatter.time(moment, use24HourTime, secondsEnabled, locale)
     }
     val longDate = remember(moment.toLocalDate(), locale) {
         TimeTextFormatter.longDate(moment, locale)
@@ -178,9 +197,26 @@ fun StandbyScreen(
     val faceInteraction = remember { MutableInteractionSource() }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
+        if (preferences.style == ClockStyle.SPOTIFY) {
+            val controller = remember(context) { SpotifyController(context) }
+            val spotifyState by controller.state.collectAsState()
+            DisposableEffect(controller, connectionActive) {
+                controller.setActive(connectionActive)
+                onDispose { controller.setActive(false) }
+            }
+            DisposableEffect(controller) { onDispose { controller.close() } }
+            SpotifyClock(preferences, readout, spotifyState, tickerActive && !controlsVisible,
+                showControls && !controlsVisible, { controller.connect() }, controller::previous,
+                controller::togglePlayback, controller::next, { controlsVisible = true },
+                Modifier.fillMaxSize().graphicsLayer {
+                    translationX = offset.xFraction * burnInDistancePx
+                    translationY = offset.yFraction * burnInDistancePx
+                })
+        } else {
         ClockFace(
             preferences = preferences,
             readout = readout,
+            animationActive = tickerActive && !controlsVisible,
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
@@ -204,9 +240,10 @@ fun StandbyScreen(
                     },
                 ),
         )
+        }
 
         AnimatedVisibility(
-            visible = hintVisible && !controlsVisible,
+            visible = hintVisible && !controlsVisible && preferences.style != ClockStyle.SPOTIFY,
             modifier = Modifier.align(Alignment.BottomCenter),
             enter = fadeIn(),
             exit = fadeOut(),
@@ -258,8 +295,8 @@ private fun SettingsOverlay(
             .background(Color.Black.copy(alpha = 0.56f)),
     ) {
         val landscape = maxWidth > maxHeight
-        val sheetWidth = if (maxWidth < 410.dp) maxWidth else 410.dp
-        val sheetHeight = maxHeight * 0.82f
+        val sheetWidth = if (maxWidth < 440.dp) maxWidth else 440.dp
+        val sheetHeight = maxHeight * 0.88f
         val dismissAreaModifier = if (landscape) {
             Modifier
                 .fillMaxHeight()
@@ -292,7 +329,7 @@ private fun SettingsOverlay(
                         Modifier.fillMaxWidth().height(sheetHeight).align(Alignment.BottomCenter)
                     },
                 ),
-            color = Color(0xFF121115),
+            color = Color(0xFF111214),
             contentColor = Color(0xFFF7F2F6),
             shape = if (landscape) {
                 RoundedCornerShape(topStart = 30.dp, bottomStart = 30.dp)
@@ -300,18 +337,11 @@ private fun SettingsOverlay(
                 RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
             },
             shadowElevation = 24.dp,
+            border = BorderStroke(1.dp, Color.White.copy(alpha = .08f)),
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("settings_list")
-                    .windowInsetsPadding(WindowInsets.safeDrawing),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                item {
+            Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 18.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
@@ -328,11 +358,13 @@ private fun SettingsOverlay(
                                 fontSize = 26.sp,
                                 fontWeight = FontWeight.SemiBold,
                             )
+                            Text("Make time yours.", color = Color(0xFF929398), fontSize = 12.sp)
                         }
                         Surface(
                             modifier = Modifier
                                 .size(48.dp)
-                                .clickable(onClick = onClose)
+                                .clip(CircleShape)
+                                .clickable(role = Role.Button, onClick = onClose)
                                 .semantics { contentDescription = closeDescription },
                             color = Color.White.copy(alpha = 0.08f),
                             shape = CircleShape,
@@ -342,25 +374,84 @@ private fun SettingsOverlay(
                             }
                         }
                     }
-                }
-
+                HorizontalDivider(color = Color.White.copy(alpha = .07f))
+                LazyColumn(
+                    modifier = Modifier.weight(1f).testTag("settings_list"),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 22.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
                 item {
-                    SectionTitle(stringResource(R.string.clock_style))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        SectionTitle(stringResource(R.string.clock_style))
+                        Text("${preferences.style.ordinal + 1} / ${ClockStyle.entries.size}",
+                            color = Color(0xFF929398), fontSize = 10.sp)
+                    }
                     Spacer(Modifier.height(12.dp))
                     LazyRow(
                         modifier = Modifier.testTag("style_picker"),
+                        state = rememberLazyListState(initialFirstVisibleItemIndex = preferences.style.ordinal),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         items(ClockStyle.entries, key = { it.name }) { style ->
                             StyleTile(
                                 style = style,
+                                preferences = preferences,
                                 selected = style == preferences.style,
                                 onClick = { settingsStore.setStyle(style) },
                             )
                         }
                     }
+                    Text(preferences.style.designNote, Modifier.padding(top = 12.dp),
+                        color = Color(0xFFB5B6BB), fontSize = 12.sp)
                 }
 
+                if (preferences.style == ClockStyle.FLIP) {
+                    item {
+                        SettingsCard {
+                            SectionTitle("Motion")
+                            SettingSwitch("Flip animation", preferences.flipAnimation, settingsStore::setFlipAnimation)
+                            Text("A gentle mechanical turn when the time changes. No motion while idle; follows Android’s animation scale.",
+                                color = Color(0xFF929398), fontSize = 12.sp)
+                        }
+                    }
+                }
+                if (preferences.style == ClockStyle.WALLPAPER) {
+                    item {
+                        SectionTitle("Your wallpapers")
+                        Spacer(Modifier.height(12.dp))
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.testTag("wallpaper_picker")) {
+                            items(WallpaperChoice.entries, key = { it.name }) { wallpaper ->
+                                Column(Modifier.width(132.dp).clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White.copy(alpha = if (wallpaper == preferences.wallpaper) .18f else .06f))
+                                    .selectable(selected = wallpaper == preferences.wallpaper, role = Role.RadioButton,
+                                        onClick = { settingsStore.setWallpaper(wallpaper) })
+                                    .testTag("wallpaper_${wallpaper.name}")) {
+                                    Image(painterResource(wallpaper.resource), contentDescription = null,
+                                        modifier = Modifier.fillMaxWidth().height(76.dp), contentScale = ContentScale.Crop)
+                                    Text(wallpaper.title, Modifier.padding(10.dp), color = Color.White, fontSize = 11.sp)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        SectionTitle("Composition")
+                        ChoiceRow(WallpaperLayout.entries, preferences.wallpaperLayout, { it.title }, settingsStore::setWallpaperLayout)
+                        Spacer(Modifier.height(12.dp))
+                        SectionTitle("Wallpaper dimming")
+                        ChoiceRow(WallpaperDim.entries, preferences.wallpaperDim, { it.title }, settingsStore::setWallpaperDim)
+                    }
+                }
+                if (preferences.style == ClockStyle.SPOTIFY || preferences.style == ClockStyle.WALLPAPER) {
+                    item {
+                        SectionTitle("Clock typography")
+                        Spacer(Modifier.height(10.dp))
+                        ChoiceRow(ClockTypography.entries, preferences.typography, { it.title }, settingsStore::setTypography)
+                        if (preferences.style == ClockStyle.SPOTIFY) {
+                            SettingSwitch("Scroll long song titles", preferences.spotifyMarquee, settingsStore::setSpotifyMarquee)
+                            Text("Progress updates once per second during playback. Long text scrolls three times per track. The clock uses HH:mm.",
+                                color = Color.White.copy(alpha = .5f), fontSize = 11.sp)
+                        }
+                    }
+                }
                 if (preferences.style == ClockStyle.MUSE) {
                     item {
                         SectionTitle(stringResource(R.string.motivation_feed))
@@ -440,14 +531,15 @@ private fun SettingsOverlay(
                 }
 
                 item {
+                    SettingsCard {
                     SectionTitle(stringResource(R.string.display))
                     Spacer(Modifier.height(8.dp))
-                    SettingSwitch(
+                    if (preferences.style !in setOf(ClockStyle.SPOTIFY, ClockStyle.WALLPAPER, ClockStyle.CHROMA)) SettingSwitch(
                         label = stringResource(R.string.show_seconds),
                         checked = preferences.showSeconds,
                         onCheckedChange = settingsStore::setShowSeconds,
                     )
-                    SettingSwitch(
+                    if (preferences.style != ClockStyle.SPOTIFY) SettingSwitch(
                         label = stringResource(R.string.show_date),
                         checked = preferences.showDate,
                         onCheckedChange = settingsStore::setShowDate,
@@ -490,6 +582,7 @@ private fun SettingsOverlay(
                     }
                 }
 
+                }
                 item {
                     SectionTitle(stringResource(R.string.time_format))
                     Spacer(Modifier.height(10.dp))
@@ -548,6 +641,17 @@ private fun SettingsOverlay(
                     )
                 }
             }
+                Row(Modifier.fillMaxWidth().background(Color(0xFF17181B)).padding(horizontal = 24.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(preferences.style.labelRes), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Saved automatically", color = Color(0xFF929398), fontSize = 10.sp)
+                    }
+                    Button(onClick = onClose, shape = RoundedCornerShape(14.dp), modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text("Done", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
         }
     }
 }
@@ -564,24 +668,25 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
+private fun SettingsCard(content: @Composable () -> Unit) {
+    Surface(color = Color(0xFF1B1C20), shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = .045f))) {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) { content() }
+    }
+}
+
+@Composable
 private fun StyleTile(
     style: ClockStyle,
+    preferences: ClockPreferences,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val colors = when (style) {
-        ClockStyle.PEBBLE -> Color(0xFF191825) to Color(0xFFFFB7C5)
-        ClockStyle.FLIP -> Color(0xFF292625) to Color(0xFFF5EEE7)
-        ClockStyle.EDITORIAL -> Color(0xFFF0EDE5) to Color(0xFF1E1B18)
-        ClockStyle.ORBIT -> Color(0xFF071C1D) to Color(0xFF9EE6CF)
-        ClockStyle.SOLAR -> Color(0xFF98CAE4) to Color(0xFFFFE3A3)
-        ClockStyle.MUSE -> Color(0xFF24203C) to Color(0xFFFFB7C5)
-        ClockStyle.NOIR -> Color.Black to Color(0xFFFFB7C5)
-    }
     Surface(
         modifier = Modifier
-            .width(116.dp)
-            .height(104.dp)
+            .width(168.dp)
+            .height(132.dp)
+            .clip(RoundedCornerShape(18.dp))
             .testTag("style_${style.name}")
             .selectable(
                 selected = selected,
@@ -597,30 +702,19 @@ private fun StyleTile(
         },
     ) {
         Column(Modifier.padding(8.dp)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(58.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colors.first),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = if (style == ClockStyle.ORBIT) "◷" else "10:08",
-                    color = colors.second,
-                    fontSize = if (style == ClockStyle.ORBIT) 28.sp else 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            ThemePreview(style, preferences, Modifier.fillMaxWidth().height(86.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(style.labelRes),
-                modifier = Modifier.padding(horizontal = 3.dp, vertical = 6.dp),
+                modifier = Modifier.weight(1f).padding(horizontal = 3.dp, vertical = 8.dp),
                 color = Color.White.copy(alpha = if (selected) 1f else 0.7f),
                 fontSize = 11.sp,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+                if (selected) Text("✓", color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
+            }
         }
     }
 }
@@ -634,7 +728,7 @@ private fun SettingSwitch(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(54.dp)
+            .heightIn(min = 56.dp)
             .toggleable(
                 value = checked,
                 role = Role.Switch,
@@ -643,7 +737,8 @@ private fun SettingSwitch(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text = label, color = Color.White.copy(alpha = 0.88f), fontSize = 14.sp)
+        Text(text = label, modifier = Modifier.weight(1f).padding(end = 12.dp),
+            color = Color.White.copy(alpha = 0.88f), fontSize = 14.sp)
         Switch(
             checked = checked,
             onCheckedChange = null,
@@ -670,7 +765,7 @@ private fun <T> ChoiceRow(
             val isSelected = choice == selected
             Surface(
                 modifier = Modifier
-                    .height(44.dp)
+                    .heightIn(min = 48.dp)
                     .selectable(
                         selected = isSelected,
                         role = Role.RadioButton,

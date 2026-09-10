@@ -13,6 +13,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mrfool.stilltime.data.SettingsStore
 import com.mrfool.stilltime.ui.screens.StandbyScreen
@@ -31,6 +32,11 @@ class MainActivity : ComponentActivity() {
             StilltimeTheme {
                 val preferences by settingsStore.state.collectAsStateWithLifecycle()
                 var isResumed by remember { mutableStateOf(true) }
+                var isStarted by remember { mutableStateOf(false) }
+                LifecycleStartEffect(Unit) {
+                    isStarted = true
+                    onStopOrDispose { isStarted = false }
+                }
 
                 LifecycleResumeEffect(Unit) {
                     isResumed = true
@@ -57,7 +63,8 @@ class MainActivity : ComponentActivity() {
                     preferences = preferences,
                     settingsStore = settingsStore,
                     tickerActive = isResumed,
-                    showControls = true,
+                        showControls = true,
+                        connectionActive = isStarted,
                 )
             }
         }

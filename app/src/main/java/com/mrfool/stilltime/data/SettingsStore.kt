@@ -8,6 +8,10 @@ import com.mrfool.stilltime.model.ClockPreferences
 import com.mrfool.stilltime.model.ClockStyle
 import com.mrfool.stilltime.model.MotivationCategory
 import com.mrfool.stilltime.model.TimeFormatPreference
+import com.mrfool.stilltime.model.WallpaperChoice
+import com.mrfool.stilltime.model.WallpaperLayout
+import com.mrfool.stilltime.model.WallpaperDim
+import com.mrfool.stilltime.model.ClockTypography
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,6 +59,12 @@ class SettingsStore(context: Context) :
     fun setKeepScreenOn(value: Boolean) = edit(KEY_KEEP_SCREEN_ON, value)
 
     fun setBurnInProtection(value: Boolean) = edit(KEY_BURN_IN_PROTECTION, value)
+    fun setWallpaper(value: WallpaperChoice) = edit("wallpaper", value.name)
+    fun setWallpaperLayout(value: WallpaperLayout) = edit("wallpaper_layout", value.name)
+    fun setWallpaperDim(value: WallpaperDim) = edit("wallpaper_dim", value.name)
+    fun setTypography(value: ClockTypography) = edit("typography", value.name)
+    fun setSpotifyMarquee(value: Boolean) = edit("spotify_marquee", value)
+    fun setFlipAnimation(value: Boolean) = edit("flip_animation", value)
 
     private fun edit(key: String, value: String) {
         preferences.edit().putString(key, value).apply()
@@ -86,6 +96,12 @@ class SettingsStore(context: Context) :
         showBattery = preferences.getBoolean(KEY_SHOW_BATTERY, true),
         keepScreenOn = preferences.getBoolean(KEY_KEEP_SCREEN_ON, true),
         burnInProtection = preferences.getBoolean(KEY_BURN_IN_PROTECTION, true),
+        wallpaper = enumValue(preferences.getString("wallpaper", null), WallpaperChoice.MOON),
+        wallpaperLayout = enumValue(preferences.getString("wallpaper_layout", null), WallpaperLayout.CINEMA),
+        wallpaperDim = enumValue(preferences.getString("wallpaper_dim", null), WallpaperDim.BALANCED),
+        typography = enumValue(preferences.getString("typography", null), ClockTypography.ROUNDED),
+        spotifyMarquee = preferences.getBoolean("spotify_marquee", true),
+        flipAnimation = preferences.getBoolean("flip_animation", true),
     )
 
     private inline fun <reified T : Enum<T>> enumValue(raw: String?, fallback: T): T =

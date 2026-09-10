@@ -7,11 +7,11 @@ import org.junit.Test
 class ClockStyleTest {
     @Test
     fun `next wraps after the last style`() {
-        assertEquals(ClockStyle.PEBBLE, ClockStyle.NOIR.next())
+        assertEquals(ClockStyle.PEBBLE, ClockStyle.entries.last().next())
     }
 
     @Test
     fun `previous wraps before the first style`() {
-        assertEquals(ClockStyle.NOIR, ClockStyle.PEBBLE.previous())
+        assertEquals(ClockStyle.entries.last(), ClockStyle.PEBBLE.previous())
     }
 }
