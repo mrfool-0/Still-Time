@@ -9,6 +9,9 @@ import com.mrfool.stilltime.BuildConfig
 import com.spotify.android.appremote.api.ConnectionParams
 import com.spotify.android.appremote.api.Connector
 import com.spotify.android.appremote.api.SpotifyAppRemote
+import com.spotify.android.appremote.api.error.AuthenticationFailedException
+import com.spotify.android.appremote.api.error.UserNotAuthorizedException
+import com.spotify.android.appremote.api.error.NotLoggedInException
 import com.spotify.protocol.client.CallResult
 import com.spotify.protocol.client.Subscription
 import com.spotify.protocol.types.Image
@@ -100,12 +103,7 @@ class SpotifyController(private val context: Context) : StandbyPlayer {
                 override fun onFailure(throwable: Throwable) {
                     handler.post {
                         if (token == generation) {
-                            val message = when {
-                                throwable.javaClass.simpleName.contains("NotAuthorized") -> "Tap Connect to allow playback control in Spotify."
-                                throwable.javaClass.simpleName.contains("NotLoggedIn") -> "Sign in to the Spotify app, then reconnect."
-                                else -> "Could not connect (${throwable.javaClass.simpleName}). Try Device player in Customize, or check your Spotify login and registration."
-                            }
-                            fail(message)
+                            fail(spotifyConnectionError(throwable))
                         }
                     }
                 }
@@ -176,4 +174,12 @@ class SpotifyController(private val context: Context) : StandbyPlayer {
     }
 
     override fun close() { active = false; disconnect() }
+}
+
+/** Type checks survive R8 obfuscation; never display raw SDK payloads or obfuscated names. */
+internal fun spotifyConnectionError(error: Throwable): String = when (error) {
+    is AuthenticationFailedException -> "Spotify authorization failed."
+    is UserNotAuthorizedException -> "Spotify authorization required."
+    is NotLoggedInException -> "Sign in to Spotify."
+    else -> "Spotify connection failed."
 }

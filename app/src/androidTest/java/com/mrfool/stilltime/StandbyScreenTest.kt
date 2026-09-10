@@ -34,6 +34,7 @@ class StandbyScreenTest {
     @Before fun resetStyle() {
         composeRule.runOnIdle { SettingsStore(composeRule.activity).use {
             it.setStyle(ClockStyle.PEBBLE)
+            it.setMotivationCategory(com.mrfool.stilltime.model.MotivationCategory.WISDOM)
             it.setThemeColors(true)
             it.setTintDigits(false)
             it.setFlipAnimation(true)
@@ -52,6 +53,8 @@ class StandbyScreenTest {
         composeRule.onNodeWithTag("style_MUSE", useUnmergedTree = true).assertIsSelected()
         composeRule.onNodeWithTag("settings_list", useUnmergedTree = true).performScrollToIndex(2)
         composeRule.onNodeWithText("MUSE FEED").assertExists()
+        composeRule.onNodeWithText("Make time yours.").assertDoesNotExist()
+        composeRule.onNodeWithText("Saved automatically").assertDoesNotExist()
         composeRule.onNodeWithText("View source").assertExists()
     }
 

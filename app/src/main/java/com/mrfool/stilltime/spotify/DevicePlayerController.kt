@@ -17,7 +17,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /** Enables Android's user-consented media-session access. No notification bodies are read. */
-class SpotifyMediaAccessService : NotificationListenerService()
+class SpotifyMediaAccessService : NotificationListenerService() {
+    override fun onListenerConnected() { super.onListenerConnected(); ready.value = true }
+    override fun onListenerDisconnected() { ready.value = false; super.onListenerDisconnected() }
+    override fun onDestroy() { ready.value = false; super.onDestroy() }
+    companion object { internal val ready = MutableStateFlow(false) }
+}
 
 object SpotifyPackages {
     val supported = setOf("com.spotify.music", "com.spotify.lite", "com.spotify.music.canary", "com.spotify.music.partners")
@@ -40,7 +45,7 @@ class DevicePlayerController(private val context: Context) : StandbyPlayer {
     private val callback = object : MediaController.Callback() {
         override fun onMetadataChanged(metadata: MediaMetadata?) = update()
         override fun onPlaybackStateChanged(state: PlaybackState?) = update()
-        override fun onSessionDestroyed() { choose(emptyList()) }
+        override fun onSessionDestroyed() { if (active) connect(false) }
     }
     private val sessions = MediaSessionManager.OnActiveSessionsChangedListener { if (active) choose(it.orEmpty()) }
 
@@ -53,6 +58,7 @@ class DevicePlayerController(private val context: Context) : StandbyPlayer {
     override fun connect(authorize: Boolean) {
         if (!active) return
         if (!NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)) {
+            detach()
             mutableState.value = SpotifyUiState(status = SpotifyStatus.ACCESS_REQUIRED)
             if (authorize) {
                 try { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
@@ -88,7 +94,7 @@ class DevicePlayerController(private val context: Context) : StandbyPlayer {
         if (!active) return
         val controller = selected
         mutableState.value = if (controller == null) SpotifyUiState(status = SpotifyStatus.CONNECTED,
-            error = "Play a song in Spotify on this phone, then return. Device player follows its Android media session.")
+            error = null)
         else devicePlayerSnapshot(controller.metadata, controller.playbackState)
     }
 

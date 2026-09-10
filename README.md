@@ -1,10 +1,12 @@
 # Stilltime
 
-Stilltime turns an Android phone or tablet into a quiet bedside or desk clock. Version 1.2 adds 30-second Muse rotation, expanded appearance controls, a complete wallpaper gallery, and fixes for the optimized Spotify integration and Android screensaver.
+Stilltime turns an Android phone or tablet into a quiet bedside or desk clock. Version 1.3 adds a softly animated kitten, independent theme appearance, a cleaner menu, and a direct Android media-session path for Spotify.
 
 ## Highlights
 
-- Thirteen faces: Pebble, Flip, Editorial, Orbit, Solar, Muse, Noir, Panorama, Redline, Night calendar, Chroma, Wallpapers, and Spotify.
+- Fourteen faces: Pebble, Flip, Editorial, Orbit, Solar, Muse, Noir, Panorama, Redline, Night calendar, Chroma, Wallpapers, Spotify, and Kitten.
+- Kitten: original vector artwork inspired by the supplied reference, with glossy eyes, blush, slow blinks, an occasional ear twitch and tail sway. Gestures rest between events; previews, hidden screens and Night brightness are static. Animation can be disabled.
+- Accent, original-color mode, digit tint and typography are saved independently for each theme, including previews. Upgrading preserves the previously selected theme's appearance; untouched themes keep their original looks.
 - Polished adaptive customization panel with real static theme previews, selection indicators, grouped controls, and pinned Close/Done actions.
 - Flip now has a two-stage, perspective split-flap animation with hinge shading and responsive numerals. It runs for 640 ms only when a value changes, stops when hidden, honors system animation scaling, and has an off switch.
 - Reference-inspired wide analog clocks in white or red, a real month calendar, and overlapping multicolor rounded digits.
@@ -22,6 +24,10 @@ Stilltime turns an Android phone or tablet into a quiet bedside or desk clock. V
 - Android 8.0 (API 26) and newer.
 
 ## A few faces
+
+![Kitten clock](docs/screenshots/v1.3/kitten-landscape.png)
+
+See [1.3 verification and installation notes](docs/VERIFICATION-1.3.md).
 
 <p align="center">
   <img src="docs/screenshots/v1.1/panorama.png" alt="Panorama analog clock" width="48%" />
@@ -82,7 +88,7 @@ Open Stilltime once to choose a face. To use it while charging, tap the in-app *
 
 ## Spotify setup
 
-The owner's Stilltime Spotify developer app is registered, and its public Client ID and redirect URI are in `gradle.properties`. No client secret or access token is included. Install Spotify on the same Android device, sign in, select the Spotify face in Stilltime, and tap **Connect** to authorize playback control. Stilltime never starts a track automatically.
+Device player is the default unless a connection method was explicitly saved. Select Spotify, tap **Grant access**, review the permission explanation and enable Stilltime media access in Android Settings. Return to Stilltime after starting local Spotify playback. App Remote remains available in Customize, with the owner's registered public Client ID and redirect URI in `gradle.properties`. No client secret or access token is included. Stilltime never starts a track automatically.
 
 The supplied preview APK is minified and resource-shrunk, with debugging disabled, but signed with the same development certificate as the original APK so it can update that installation. It is not a Play Store signing configuration. New signing keys or another developer account require matching Spotify registration. See [docs/SPOTIFY.md](docs/SPOTIFY.md) for exact setup, certificate details, failure states, and test limits.
 

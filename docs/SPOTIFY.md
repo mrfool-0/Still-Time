@@ -12,6 +12,12 @@ In Customize → Connection method select **Device player**. Tap **Grant access*
 
 Live Spotify playback on a physical phone remains unverified; local metadata/transport mapping and consent UI are tested with fixtures.
 
+## Version 1.3 authorization recovery
+
+The user's 1.2 screenshot showed `Could not connect (i9)`. The exact 1.2 R8 mapping identifies `i9` as `com.spotify.android.appremote.api.error.AuthenticationFailedException`. This is an authorization rejection, not missing Spotify. The screenshot alone does not identify whether the service rejected the account, signing registration, or another authorization condition. The app now uses typed exception checks rather than obfuscated class-name matching, and never displays raw SDK payloads.
+
+Device player is now the default without an explicitly saved connection method. An App Remote error exposes **Use device player** directly. This local Android media-session connection does not require Spotify developer authorization, but does require the user's notification/media-access consent. Returning from Settings and notification-listener readiness both trigger a refresh; no polling was added. A blank session retains **Open Spotify** as an action.
+
 ## Registered application
 
 - App: Stilltime, owned by the user's signed-in Spotify developer account.
@@ -25,10 +31,10 @@ The Client ID is a public application identifier. The client secret was not view
 
 ## Install and connect
 
-1. Install the supplied Stilltime 1.2 preview APK on an Android 8.0+ device. It can update the original Stilltime APK because both use the same development certificate.
+1. Install the supplied Stilltime 1.3 preview APK on an Android 8.0+ device. It can update the original Stilltime APK because both use the same development certificate.
 2. Install/open the official Spotify app and sign in to the intended account.
 3. In Stilltime, choose **Spotify** from Customize and rotate the device to landscape.
-4. Tap **Connect** and approve Spotify's playback-control consent. Existing approval may allow a silent connection first.
+4. For Device player, tap **Grant access** and approve Android media access. For App Remote, select that method in Customize, then tap **Connect** and approve Spotify's playback-control consent.
 5. Start a song in Spotify. Stilltime will display its artwork and metadata; the transport buttons control that session. Stilltime does not automatically choose or start music.
 
 Spotify's [Android getting-started guide](https://developer.spotify.com/documentation/android/tutorials/getting-started) documents the built-in App Remote authorization flow and `app-remote-control` scope. The separate auth library is unnecessary for this flow. Initial authorization requires a usable Spotify session and connectivity; the SDK documents limited offline reauthorization after a recent successful connection.

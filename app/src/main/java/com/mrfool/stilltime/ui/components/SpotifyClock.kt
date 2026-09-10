@@ -52,6 +52,7 @@ fun SpotifyClock(
     onNext: () -> Unit,
     onCustomize: () -> Unit,
     modifier: Modifier = Modifier,
+    onUseDevicePlayer: (() -> Unit)? = null,
 ) {
     BoxWithConstraints(modifier.background(Color.Black).windowInsetsPadding(WindowInsets.safeDrawing)) {
         val landscape = maxWidth > maxHeight
@@ -68,8 +69,6 @@ fun SpotifyClock(
                     Text(readout.longDate, color = Color.White.copy(alpha = .56f), fontSize = 13.sp)
                     if (preferences.showBattery) Text(readout.batteryLabel, Modifier.padding(top = 24.dp),
                         color = Color.White.copy(alpha = .34f), fontSize = 11.sp)
-                    if (!landscape) Text("Rotate for the split-screen view", Modifier.padding(top = 16.dp),
-                        color = Color.White.copy(alpha = .4f), fontSize = 10.sp)
                 }
                 if (interactive) TextButton(onClick = onCustomize, modifier = Modifier.align(Alignment.TopStart).testTag("spotify_customize")) {
                     Text("Customize", color = Color.White.copy(alpha = .65f), fontSize = 11.sp)
@@ -78,7 +77,7 @@ fun SpotifyClock(
         }
         val playerSide: @Composable (Modifier) -> Unit = { side ->
             SpotifyPlayerPanel(state, preferences.spotifyMarquee && active, active, interactive,
-                onConnect, onPrevious, onToggle, onNext, side.testTag("spotify_player_half"))
+                onConnect, onPrevious, onToggle, onNext, side.testTag("spotify_player_half"), onUseDevicePlayer)
         }
         if (landscape) {
             Row(Modifier.fillMaxSize()) {
@@ -106,6 +105,7 @@ fun SpotifyPlayerPanel(
     onToggle: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
+    onUseDevicePlayer: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val connected = state.status == SpotifyStatus.CONNECTED
@@ -119,7 +119,8 @@ fun SpotifyPlayerPanel(
         dismissButton = { TextButton(onClick = { showAccessExplanation = false }) { Text("Not now") } },
     )
     BoxWithConstraints(modifier.background(Color(0xFF090C0B)).padding(horizontal = 26.dp, vertical = 14.dp)) {
-        val chromeHeight = 210.dp + (if (!connected && interactive) 48.dp else 0.dp) +
+        val chromeHeight = 210.dp + (if (!hasTrack && interactive) 48.dp else 0.dp) +
+            (if (interactive && !connected && state.status != SpotifyStatus.CONNECTING && onUseDevicePlayer != null) 48.dp else 0.dp) +
             (if (state.error != null) 42.dp else 0.dp)
         val artworkSize = minOf(maxWidth * .64f, (maxHeight - chromeHeight).coerceAtLeast(64.dp), 230.dp)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
@@ -168,9 +169,9 @@ fun SpotifyPlayerPanel(
                     if (state.timeline.paused) 0 else 2, onToggle)
                 TransportButton("Next track", hasTrack && interactive && state.canSkipNext, false, 1, onNext)
             }
-            if (!connected && interactive) {
+            if (!hasTrack && interactive) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (state.status !in setOf(SpotifyStatus.SETUP_REQUIRED, SpotifyStatus.APP_MISSING, SpotifyStatus.SDK_UNAVAILABLE)) {
+                    if (!connected && state.status !in setOf(SpotifyStatus.SETUP_REQUIRED, SpotifyStatus.APP_MISSING, SpotifyStatus.SDK_UNAVAILABLE)) {
                         TextButton(onClick = {
                             if (state.status == SpotifyStatus.ACCESS_REQUIRED) showAccessExplanation = true else onConnect()
                         }, enabled = state.status != SpotifyStatus.CONNECTING) {
@@ -183,6 +184,9 @@ fun SpotifyPlayerPanel(
                         try { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: ActivityNotFoundException) { }
                     }) { Text("Open Spotify", color = Color.White.copy(alpha = .7f)) }
                 }
+            }
+            if (interactive && !connected && state.status != SpotifyStatus.CONNECTING && onUseDevicePlayer != null) {
+                TextButton(onClick = onUseDevicePlayer) { Text("Use device player", color = SpotifyGreen) }
             }
             state.error?.let { Text(it, color = Color(0xFFFFB6AD), fontSize = 10.sp, lineHeight = 14.sp, maxLines = 3) }
         }

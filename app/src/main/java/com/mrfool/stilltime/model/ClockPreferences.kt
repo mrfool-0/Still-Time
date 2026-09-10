@@ -17,6 +17,7 @@ enum class ClockStyle(@StringRes val labelRes: Int) {
     CHROMA(R.string.style_chroma),
     WALLPAPER(R.string.style_wallpaper),
     SPOTIFY(R.string.style_spotify),
+    CAT(R.string.style_cat),
     ;
 
     fun next(): ClockStyle = entries[(ordinal + 1) % entries.size]
@@ -94,6 +95,7 @@ data class ClockPreferences(
     val flipAnimation: Boolean = true,
     val themeColors: Boolean = true,
     val tintDigits: Boolean = false,
-    val devicePlayer: Boolean = false,
+    val devicePlayer: Boolean = true,
     val museMotion: Boolean = true,
+    val catMotion: Boolean = true,
 )

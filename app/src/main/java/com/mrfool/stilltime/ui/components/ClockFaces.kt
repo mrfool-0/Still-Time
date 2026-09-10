@@ -94,6 +94,7 @@ fun ClockFace(
         ClockStyle.CHROMA -> ChromaClock(preferences, readout, accessibleModifier)
         ClockStyle.WALLPAPER -> WallpaperClock(preferences, readout, accessibleModifier)
         ClockStyle.SPOTIFY -> Unit // Interactive Spotify surface is hosted by StandbyScreen.
+        ClockStyle.CAT -> KittenClock(preferences, readout, accent, accessibleModifier, animationActive)
     }
 }
 

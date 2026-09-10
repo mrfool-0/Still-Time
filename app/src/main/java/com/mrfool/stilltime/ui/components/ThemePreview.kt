@@ -73,4 +73,5 @@ val ClockStyle.designNote: String get() = when (this) {
     ClockStyle.CHROMA -> "Layered color · rounded numerals"
     ClockStyle.WALLPAPER -> "Your artwork · three compositions"
     ClockStyle.SPOTIFY -> "Time meets music · split-screen"
+    ClockStyle.CAT -> "A quiet little companion"
 }

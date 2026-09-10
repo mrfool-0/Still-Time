@@ -102,7 +102,6 @@ import com.mrfool.stilltime.power.rememberClockMoment
 import com.mrfool.stilltime.ui.components.ClockFace
 import com.mrfool.stilltime.ui.components.ClockReadout
 import com.mrfool.stilltime.ui.components.ThemePreview
-import com.mrfool.stilltime.ui.components.designNote
 import com.mrfool.stilltime.ui.components.fontFamily
 import com.mrfool.stilltime.util.TimeTextFormatter
 import kotlinx.coroutines.delay
@@ -177,14 +176,6 @@ fun StandbyScreen(
     )
 
     var controlsVisible by remember { mutableStateOf(false) }
-    var hintVisible by remember { mutableStateOf(showControls) }
-
-    LaunchedEffect(showControls) {
-        if (showControls) {
-            delay(4_500L)
-            hintVisible = false
-        }
-    }
 
     if (showControls) {
         BackHandler(enabled = controlsVisible) { controlsVisible = false }
@@ -207,6 +198,10 @@ fun StandbyScreen(
                 if (preferences.devicePlayer) DevicePlayerController(context) else SpotifyController(context)
             }
             val spotifyState by controller.state.collectAsState()
+            val mediaReady by com.mrfool.stilltime.spotify.SpotifyMediaAccessService.ready.collectAsState()
+            LaunchedEffect(controller, tickerActive, mediaReady) {
+                if (tickerActive && preferences.devicePlayer) controller.connect(false)
+            }
             DisposableEffect(controller, connectionActive) {
                 controller.setActive(connectionActive)
                 onDispose { controller.setActive(false) }
@@ -218,6 +213,8 @@ fun StandbyScreen(
                 Modifier.fillMaxSize().graphicsLayer {
                     translationX = offset.xFraction * burnInDistancePx
                     translationY = offset.yFraction * burnInDistancePx
+                }, onUseDevicePlayer = if (preferences.devicePlayer) null else {
+                    { settingsStore.setDevicePlayer(true) }
                 })
         } else {
         ClockFace(
@@ -239,7 +236,6 @@ fun StandbyScreen(
                             interactionSource = faceInteraction,
                             indication = null,
                         ) {
-                            hintVisible = false
                             controlsVisible = true
                         }
                     } else {
@@ -247,27 +243,6 @@ fun StandbyScreen(
                     },
                 ),
         )
-        }
-
-        AnimatedVisibility(
-            visible = hintVisible && !controlsVisible && preferences.style != ClockStyle.SPOTIFY,
-            modifier = Modifier.align(Alignment.BottomCenter),
-            enter = fadeIn(),
-            exit = fadeOut(),
-        ) {
-            Surface(
-                modifier = Modifier.navigationBarsPadding().padding(bottom = 24.dp),
-                color = Color.Black.copy(alpha = 0.58f),
-                contentColor = Color.White,
-                shape = RoundedCornerShape(100),
-            ) {
-                Text(
-                    text = stringResource(R.string.tap_to_customize),
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
-                    fontSize = 12.sp,
-                    letterSpacing = 0.25.sp,
-                )
-            }
         }
 
         AnimatedVisibility(
@@ -365,7 +340,6 @@ private fun SettingsOverlay(
                                 fontSize = 26.sp,
                                 fontWeight = FontWeight.SemiBold,
                             )
-                            Text("Make time yours.", color = Color(0xFF929398), fontSize = 12.sp)
                         }
                         Surface(
                             modifier = Modifier
@@ -402,14 +376,12 @@ private fun SettingsOverlay(
                         items(ClockStyle.entries, key = { it.name }) { style ->
                             StyleTile(
                                 style = style,
-                                preferences = preferences,
+                                preferences = settingsStore.preferencesFor(style),
                                 selected = style == preferences.style,
                                 onClick = { settingsStore.setStyle(style) },
                             )
                         }
                     }
-                    Text(preferences.style.designNote, Modifier.padding(top = 12.dp),
-                        color = Color(0xFFB5B6BB), fontSize = 12.sp)
                 }
 
                 if (preferences.style == ClockStyle.FLIP) {
@@ -417,10 +389,11 @@ private fun SettingsOverlay(
                         SettingsCard {
                             SectionTitle("Motion")
                             SettingSwitch("Flip animation", preferences.flipAnimation, settingsStore::setFlipAnimation)
-                            Text("A gentle mechanical turn when the time changes. No motion while idle; follows Android’s animation scale.",
-                                color = Color(0xFF929398), fontSize = 12.sp)
                         }
                     }
+                }
+                if (preferences.style == ClockStyle.CAT) {
+                    item { SettingSwitch("Kitten animation", preferences.catMotion, settingsStore::setCatMotion) }
                 }
                 if (preferences.style == ClockStyle.WALLPAPER) {
                     item {
@@ -474,11 +447,7 @@ private fun SettingsOverlay(
                             SectionTitle("Connection method")
                             ChoiceRow(listOf(false, true), preferences.devicePlayer,
                                 { if (it) "Device player" else "Spotify App Remote" }, settingsStore::setDevicePlayer)
-                            Text("App Remote uses Spotify authorization. Device player is an optional fallback using Android media access; it requires your approval in Android Settings.",
-                                Modifier.padding(top = 10.dp), color = Color(0xFFB5B6BB), fontSize = 12.sp)
                             SettingSwitch("Scroll long song titles", preferences.spotifyMarquee, settingsStore::setSpotifyMarquee)
-                            Text("Progress updates once per second during playback. Long text scrolls three times per track. The clock uses HH:mm.",
-                                color = Color.White.copy(alpha = .5f), fontSize = 11.sp)
                         }
                     }
                 }
@@ -492,17 +461,7 @@ private fun SettingsOverlay(
                             label = { stringResource(it.labelRes) },
                             onSelect = settingsStore::setMotivationCategory,
                         )
-                        Text(
-                            text = stringResource(R.string.motivation_rotation_hint),
-                            modifier = Modifier.padding(top = 10.dp),
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 11.sp,
-                        )
-                        Text("The five series packs contain original Stilltime reflections, not canon dialogue. Their links provide series context; LOTM refers to the novel.",
-                            Modifier.padding(top = 8.dp), color = Color(0xFFB5B6BB), fontSize = 11.sp)
                         SettingSwitch("Aurora background", preferences.museMotion, settingsStore::setMuseMotion)
-                        Text("A soft light drift with each new thought, then stillness. Pauses in menus, at night brightness and when the app is hidden; respects system animation settings.",
-                            color = Color.White.copy(alpha = .5f), fontSize = 11.sp)
                         Button(
                             modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(48.dp),
                             onClick = {
@@ -598,27 +557,6 @@ private fun SettingsOverlay(
                         checked = preferences.burnInProtection,
                         onCheckedChange = settingsStore::setBurnInProtection,
                     )
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        color = Color.White.copy(alpha = 0.055f),
-                        shape = RoundedCornerShape(16.dp),
-                    ) {
-                        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                            Text(
-                                text = stringResource(R.string.low_power_pick),
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.5.sp,
-                            )
-                            Text(
-                                text = stringResource(R.string.low_power_hint),
-                                modifier = Modifier.padding(top = 5.dp),
-                                color = Color.White.copy(alpha = 0.68f),
-                                fontSize = 12.sp,
-                            )
-                        }
-                    }
                 }
 
                 }
@@ -647,9 +585,6 @@ private fun SettingsOverlay(
                 item {
                     HorizontalDivider(color = Color.White.copy(alpha = 0.09f))
                     Spacer(Modifier.height(18.dp))
-                    Text("Screen saver setup", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-                    Text("1. Select Stilltime clock in Android’s Screen saver settings.\n2. Choose While charging or docked.\n3. Use Start now to test. Let the screen time out while charging; pressing the power button usually does not start a screensaver.",
-                        Modifier.padding(vertical = 12.dp), color = Color(0xFFB5B6BB), fontSize = 12.sp)
                     Button(
                         modifier = Modifier.fillMaxWidth().height(54.dp),
                         onClick = {
@@ -674,20 +609,12 @@ private fun SettingsOverlay(
                             fontWeight = FontWeight.Bold,
                         )
                     }
-                    Text(
-                        text = stringResource(R.string.screensaver_hint),
-                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 11.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    )
                 }
             }
                 Row(Modifier.fillMaxWidth().background(Color(0xFF17181B)).padding(horizontal = 24.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
                         Text(stringResource(preferences.style.labelRes), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Saved automatically", color = Color(0xFF929398), fontSize = 10.sp)
                     }
                     Button(onClick = onClose, shape = RoundedCornerShape(14.dp), modifier = Modifier.heightIn(min = 48.dp)) {
                         Text("Done", fontWeight = FontWeight.SemiBold)

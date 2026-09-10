@@ -49,7 +49,7 @@ class ThemeRenderTest {
         landscape()
         val preferences = mutableStateOf(ClockPreferences(style = ClockStyle.PANORAMA))
         rule.setContent { StilltimeTheme { ClockFace(preferences.value, readout, Modifier.fillMaxSize()) } }
-        for (style in listOf(ClockStyle.FLIP, ClockStyle.PANORAMA, ClockStyle.REDLINE, ClockStyle.CALENDAR, ClockStyle.CHROMA)) {
+        for (style in listOf(ClockStyle.FLIP, ClockStyle.PANORAMA, ClockStyle.REDLINE, ClockStyle.CALENDAR, ClockStyle.CHROMA, ClockStyle.CAT)) {
             rule.runOnIdle { preferences.value = ClockPreferences(style = style) }
             capture(style.name.lowercase())
         }
@@ -109,7 +109,7 @@ class ThemeRenderTest {
                     {}, {}, {}, {}, {}, Modifier.fillMaxSize())
             } else ClockFace(preferences.value, readout, Modifier.fillMaxSize())
         } }
-        for (style in listOf(ClockStyle.FLIP, ClockStyle.PANORAMA, ClockStyle.REDLINE, ClockStyle.CALENDAR, ClockStyle.CHROMA, ClockStyle.WALLPAPER, ClockStyle.SPOTIFY)) {
+        for (style in listOf(ClockStyle.FLIP, ClockStyle.PANORAMA, ClockStyle.REDLINE, ClockStyle.CALENDAR, ClockStyle.CHROMA, ClockStyle.WALLPAPER, ClockStyle.CAT, ClockStyle.SPOTIFY)) {
             rule.runOnIdle { preferences.value = ClockPreferences(style = style, wallpaperLayout = WallpaperLayout.GALLERY) }
             capture("${style.name.lowercase()}_portrait")
         }
@@ -147,6 +147,18 @@ class ThemeRenderTest {
         rule.onNodeWithText("Grant access").performClick()
         rule.onNodeWithText("Open Android settings").performClick()
         rule.runOnIdle { assertEquals(1, requests) }
+    }
+
+    @Test fun spotifyFailureOffersDirectDevicePlayerFallback() {
+        landscape()
+        var selected = false
+        rule.setContent { StilltimeTheme {
+            SpotifyClock(ClockPreferences(style = ClockStyle.SPOTIFY, devicePlayer = false), readout,
+                SpotifyUiState(status = SpotifyStatus.ERROR, error = "Spotify authorization failed."), false, true,
+                {}, {}, {}, {}, {}, Modifier.fillMaxSize(), onUseDevicePlayer = { selected = true })
+        } }
+        rule.onNodeWithText("Use device player").assertIsDisplayed().performClick()
+        rule.runOnIdle { assertTrue(selected) }
     }
 
     @Test fun originalSeriesReflectionsRenderInLandscape() = renderSeries(false)

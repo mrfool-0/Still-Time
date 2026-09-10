@@ -23,6 +23,19 @@ class SettingsStore(context: Context) :
         FILE_NAME,
         Context.MODE_PRIVATE,
     )
+    init {
+        // Preserve the visible theme on upgrade without propagating its look to every face.
+        if (!preferences.getBoolean("appearance_profiles_v1", false)) {
+            val style = enumValue(preferences.getString(KEY_STYLE, null), ClockStyle.PEBBLE)
+            preferences.edit().apply {
+                putString(profileKey(style, KEY_ACCENT), preferences.getString(KEY_ACCENT, AccentChoice.ROSE.name))
+                putString(profileKey(style, "typography"), preferences.getString("typography", ClockTypography.ORIGINAL.name))
+                putBoolean(profileKey(style, "theme_colors"), preferences.getBoolean("theme_colors", true))
+                putBoolean(profileKey(style, "tint_digits"), preferences.getBoolean("tint_digits", false))
+                putBoolean("appearance_profiles_v1", true)
+            }.apply()
+        }
+    }
     private val mutableState = MutableStateFlow(readPreferences())
 
     val state: StateFlow<ClockPreferences> = mutableState.asStateFlow()
@@ -46,13 +59,16 @@ class SettingsStore(context: Context) :
     fun setBrightness(value: BrightnessMode) = edit(KEY_BRIGHTNESS, value.name)
 
     fun setAccent(value: AccentChoice) {
-        preferences.edit().putString(KEY_ACCENT, value.name).putBoolean("theme_colors", false).apply()
+        val style = state.value.style
+        preferences.edit().putString(profileKey(style, KEY_ACCENT), value.name)
+            .putBoolean(profileKey(style, "theme_colors"), false).apply()
         mutableState.value = readPreferences()
     }
-    fun setThemeColors(value: Boolean) = edit("theme_colors", value)
-    fun setTintDigits(value: Boolean) = edit("tint_digits", value)
+    fun setThemeColors(value: Boolean) = edit(profileKey(state.value.style, "theme_colors"), value)
+    fun setTintDigits(value: Boolean) = edit(profileKey(state.value.style, "tint_digits"), value)
     fun setDevicePlayer(value: Boolean) = edit("device_player", value)
     fun setMuseMotion(value: Boolean) = edit("muse_motion", value)
+    fun setCatMotion(value: Boolean) = edit("cat_motion", value)
 
     fun setMotivationCategory(value: MotivationCategory) =
         edit(KEY_MOTIVATION_CATEGORY, value.name)
@@ -69,7 +85,7 @@ class SettingsStore(context: Context) :
     fun setWallpaper(value: WallpaperChoice) = edit("wallpaper", value.name)
     fun setWallpaperLayout(value: WallpaperLayout) = edit("wallpaper_layout", value.name)
     fun setWallpaperDim(value: WallpaperDim) = edit("wallpaper_dim", value.name)
-    fun setTypography(value: ClockTypography) = edit("typography", value.name)
+    fun setTypography(value: ClockTypography) = edit(profileKey(state.value.style, "typography"), value.name)
     fun setSpotifyMarquee(value: Boolean) = edit("spotify_marquee", value)
     fun setFlipAnimation(value: Boolean) = edit("flip_animation", value)
 
@@ -83,8 +99,12 @@ class SettingsStore(context: Context) :
         mutableState.value = readPreferences()
     }
 
-    private fun readPreferences(): ClockPreferences = ClockPreferences(
-        style = enumValue(preferences.getString(KEY_STYLE, null), ClockStyle.PEBBLE),
+    fun preferencesFor(style: ClockStyle): ClockPreferences = readPreferences(style)
+
+    private fun profileKey(style: ClockStyle, key: String) = "appearance_${style.name}_$key"
+
+    private fun readPreferences(style: ClockStyle = enumValue(preferences.getString(KEY_STYLE, null), ClockStyle.PEBBLE)): ClockPreferences = ClockPreferences(
+        style = style,
         timeFormat = enumValue(
             preferences.getString(KEY_TIME_FORMAT, null),
             TimeFormatPreference.SYSTEM,
@@ -93,7 +113,7 @@ class SettingsStore(context: Context) :
             preferences.getString(KEY_BRIGHTNESS, null),
             BrightnessMode.SYSTEM,
         ),
-        accent = enumValue(preferences.getString(KEY_ACCENT, null), AccentChoice.ROSE),
+        accent = enumValue(preferences.getString(profileKey(style, KEY_ACCENT), null), AccentChoice.ROSE),
         motivationCategory = enumValue(
             preferences.getString(KEY_MOTIVATION_CATEGORY, null),
             MotivationCategory.ALL,
@@ -106,13 +126,14 @@ class SettingsStore(context: Context) :
         wallpaper = enumValue(preferences.getString("wallpaper", null), WallpaperChoice.MOON),
         wallpaperLayout = enumValue(preferences.getString("wallpaper_layout", null), WallpaperLayout.CINEMA),
         wallpaperDim = enumValue(preferences.getString("wallpaper_dim", null), WallpaperDim.BALANCED),
-        typography = enumValue(preferences.getString("typography", null), ClockTypography.ORIGINAL),
+        typography = enumValue(preferences.getString(profileKey(style, "typography"), null), ClockTypography.ORIGINAL),
         spotifyMarquee = preferences.getBoolean("spotify_marquee", true),
         flipAnimation = preferences.getBoolean("flip_animation", true),
-        themeColors = preferences.getBoolean("theme_colors", true),
-        tintDigits = preferences.getBoolean("tint_digits", false),
-        devicePlayer = preferences.getBoolean("device_player", false),
+        themeColors = preferences.getBoolean(profileKey(style, "theme_colors"), true),
+        tintDigits = preferences.getBoolean(profileKey(style, "tint_digits"), false),
+        devicePlayer = preferences.getBoolean("device_player", true),
         museMotion = preferences.getBoolean("muse_motion", true),
+        catMotion = preferences.getBoolean("cat_motion", true),
     )
 
     private inline fun <reified T : Enum<T>> enumValue(raw: String?, fallback: T): T =
