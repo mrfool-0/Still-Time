@@ -1,6 +1,6 @@
 # Stilltime
 
-Stilltime turns an Android phone or tablet into a quiet bedside or desk clock. Version 1.1 adds reference-inspired faces, eight local wallpapers, and an optional Spotify App Remote player to the original offline clock and sourced Muse feed.
+Stilltime turns an Android phone or tablet into a quiet bedside or desk clock. Version 1.2 adds 30-second Muse rotation, expanded appearance controls, a complete wallpaper gallery, and fixes for the optimized Spotify integration and Android screensaver.
 
 ## Highlights
 
@@ -8,12 +8,15 @@ Stilltime turns an Android phone or tablet into a quiet bedside or desk clock. V
 - Polished adaptive customization panel with real static theme previews, selection indicators, grouped controls, and pinned Close/Done actions.
 - Flip now has a two-stage, perspective split-flap animation with hinge shading and responsive numerals. It runs for 640 ms only when a value changes, stops when hidden, honors system animation scaling, and has an off switch.
 - Reference-inspired wide analog clocks in white or red, a real month calendar, and overlapping multicolor rounded digits.
-- Eight supplied wallpapers, three compositions (Cinema, Gallery, Poster), three dimming levels, and three typography choices.
+- Eight supplied wallpapers, three compositions (Cinema, Gallery, Poster), three dimming levels, and six typography choices.
 - Spotify landscape mode: equal left/right clock and player panels, album art, title/artist marquee, previous/play/pause/next, and elapsed/total track progress. Portrait falls back to a stacked layout.
-- Muse rotates between public-domain wisdom, source-backed life notes, and short attributed anime moments every 15 minutes.
+- Muse rotates through 303 entries every 30 seconds: wisdom, life notes, short anime moments, and 100 new original series-inspired reflections (20 each for One Piece, Naruto, Lord of Mysteries novel, Bleach, and Attack on Titan). Each series pack can be selected separately.
+- Muse's aurora background uses soft accent-colored light and fine contours. A 2.4-second drift accompanies each new thought, then rests. It has an off switch, respects system animation settings, and stops in menus, when hidden, and at Night brightness.
 - Every Muse card carries an author or organization, work/source title, and a tappable source URL.
 - System, 12-hour, and 24-hour time; optional seconds, date, battery, and charging state.
-- Five accent palettes and four brightness modes.
+- Twenty accent palettes, six clock typography options (theme original, modern, rounded, serif, mono, condensed), optional colored digits, and four brightness modes. Light faces darken colored digits for contrast.
+- All eight supplied wallpapers are visible in a labeled two-column gallery. The other four supplied images were clock-face references, recreated as Panorama, Redline, Night calendar and Chroma.
+- Spotify App Remote's reflection provider is now retained in optimized builds. Optional Device player mode uses user-approved Android media-session access as an alternative; see [connection help](docs/SPOTIFY.md).
 - Built-in `DreamService`, so Stilltime can be selected under Android's Screen saver settings.
 - No analytics, ads, background sync, wake lock, scheduled alarm, or foreground service. The optional Spotify integration adds internet permission; all other faces and the Muse corpus remain local.
 - Android 8.0 (API 26) and newer.
@@ -39,14 +42,14 @@ The Spotify screenshot below uses an explicitly labelled test fixture to validat
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/muse-landscape.png" alt="Muse clock face in landscape" width="94%" />
+  <img src="docs/screenshots/v1.2/muse_lotm_landscape.png" alt="Muse aurora background with an original LOTM-inspired reflection" width="94%" />
 </p>
 
 ## Power strategy
 
 Always-on screens are never free: the display itself usually dominates. Stilltime minimizes avoidable app work and lets the user choose the visual/power trade-off.
 
-- Seconds are off by default. The clock sleeps until the next exact minute boundary instead of polling or drawing continuously.
+- Seconds are off by default. Most clocks sleep until the next minute boundary; Muse wakes on 30-second boundaries. Nothing polls or redraws continuously while idle.
 - Updates stop when the Activity is not resumed. There are no perpetual animations.
 - Flip is event-driven, not a continuous sweep. Its preview tiles never animate; disabling seconds keeps it to minute-boundary transitions. Bright wallpapers and Spotify playback still consume more power than a static black face.
 - The optional keep-screen-on behavior is scoped to the visible Activity; no CPU wake lock is requested.
@@ -85,7 +88,7 @@ The supplied preview APK is minified and resource-shrunk, with debugging disable
 
 ## Muse library
 
-The tab-separated library lives at `app/src/main/res/raw/motivation.tsv` with this schema:
+The tab-separated library lives at `app/src/main/res/raw/motivation.tsv` and `series_motivation.tsv` with this schema:
 
 ```text
 category<TAB>text<TAB>attribution<TAB>source title<TAB>source URL
@@ -93,7 +96,9 @@ category<TAB>text<TAB>attribution<TAB>source title<TAB>source URL
 
 `WISDOM` contains short passages checked against public-domain primary texts. `LIFE_FACT` contains original plain-language summaries linked to health or research sources. `ANIME` contains short attributed excerpts with provenance links; those underlying works remain copyrighted. Read [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) before redistribution, especially for a commercial or Play Store release.
 
-Tests enforce a minimum of 200 complete, sourced, unique entries and a 20-word ceiling for quoted entries.
+The five series packs contain **original Stilltime writing, not canon quotations or character dialogue**. Every card explicitly says “original reflection” and “inspired, not canon”; its link opens the official publisher's series page for context, not a source asserting that the line appears in the work. LOTM means the Lord of Mysteries novel. See the [content notices](THIRD_PARTY_NOTICES.md).
+
+Tests enforce at least 300 complete, unique entries, exactly 20 clearly labeled originals per requested series, and a 20-word ceiling for short entries.
 
 ## Design and engineering research
 

@@ -116,4 +116,60 @@ class ThemeRenderTest {
         rule.onNodeWithText("Open Spotify").assertIsDisplayed()
         rule.onNodeWithText("Customize").assertIsDisplayed()
     }
+
+    @Test fun appearancePreferencesVisiblyChangeEveryClockFace() {
+        landscape()
+        val preferences = mutableStateOf(ClockPreferences())
+        rule.setContent { StilltimeTheme { ClockFace(preferences.value, readout, Modifier.fillMaxSize(), animationActive = false) } }
+        for (style in ClockStyle.entries.filter { it != ClockStyle.SPOTIFY }) {
+            rule.runOnIdle { preferences.value = ClockPreferences(style = style) }
+            val before = rule.onRoot().captureToImage().asAndroidBitmap()
+            rule.runOnIdle { preferences.value = preferences.value.copy(accent = AccentChoice.AQUA,
+                themeColors = false, tintDigits = true, typography = ClockTypography.MONO) }
+            val after = rule.onRoot().captureToImage().asAndroidBitmap()
+            assertTrue("Appearance controls must affect $style", !before.sameAs(after))
+            if (style in listOf(ClockStyle.FLIP, ClockStyle.CALENDAR, ClockStyle.CHROMA)) capture("appearance_${style.name.lowercase()}")
+        }
+    }
+
+    @Test fun mediaAccessRequiresExplicitExplanationBeforeSettings() {
+        landscape()
+        var requests = 0
+        rule.setContent { StilltimeTheme {
+            SpotifyClock(ClockPreferences(style = ClockStyle.SPOTIFY), readout,
+                SpotifyUiState(status = SpotifyStatus.ACCESS_REQUIRED), false, true,
+                { requests++ }, {}, {}, {}, {}, Modifier.fillMaxSize())
+        } }
+        rule.onNodeWithText("Grant access").performClick()
+        rule.runOnIdle { assertEquals(0, requests) }
+        rule.onNodeWithText("Not now").performClick()
+        rule.runOnIdle { assertEquals(0, requests) }
+        rule.onNodeWithText("Grant access").performClick()
+        rule.onNodeWithText("Open Android settings").performClick()
+        rule.runOnIdle { assertEquals(1, requests) }
+    }
+
+    @Test fun originalSeriesReflectionsRenderInLandscape() = renderSeries(false)
+    @Test fun originalSeriesReflectionsRenderInPortrait() = renderSeries(true)
+
+    private fun renderSeries(portrait: Boolean) {
+        rule.activityRule.scenario.onActivity { it.requestedOrientation = if (portrait)
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
+        rule.waitUntil(5_000) { rule.activity.resources.configuration.orientation == if (portrait)
+            Configuration.ORIENTATION_PORTRAIT else Configuration.ORIENTATION_LANDSCAPE }
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val packs = com.mrfool.stilltime.data.MotivationLibrary.entries(context)
+            .filter { it.category.inspiredBy != null }.groupBy { it.category }
+        val entry = mutableStateOf(packs.values.first().first())
+        rule.setContent { StilltimeTheme {
+            ClockFace(ClockPreferences(style = ClockStyle.MUSE), readout.copy(motivation = entry.value),
+                Modifier.fillMaxSize(), animationActive = false)
+        } }
+            for ((category, entries) in packs) {
+                rule.runOnIdle { entry.value = entries.maxBy { it.text.length } }
+                rule.onNodeWithText("SERIES-INSPIRED", useUnmergedTree = true).assertIsDisplayed()
+                rule.onNodeWithText(entry.value.text, useUnmergedTree = true).assertIsDisplayed()
+                capture("muse_${category.name.lowercase()}_${if (portrait) "portrait" else "landscape"}")
+            }
+    }
 }

@@ -59,11 +59,11 @@ fun SpotifyClock(
             BoxWithConstraints(side.testTag("spotify_clock_half").padding(24.dp)) {
                 val clockTextSize = minOf(maxWidth.value * .28f, maxHeight.value * .46f).sp
                 Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("STILLTIME", color = Color(preferences.accent.seed), fontSize = 10.sp, letterSpacing = 4.sp)
+                    Text("STILLTIME", color = preferences.accentColor(Color(0xFFFFB7C5)), fontSize = 10.sp, letterSpacing = 4.sp)
                     Spacer(Modifier.height(14.dp))
                     Text(readout.moment.format(DateTimeFormatter.ofPattern("HH:mm")),
                         fontFamily = preferences.typography.fontFamily(), fontWeight = FontWeight.Medium,
-                        color = Color(0xFFF4F0E9), fontSize = clockTextSize,
+                        color = preferences.digitColor(Color(0xFFF4F0E9)), fontSize = clockTextSize,
                         letterSpacing = (-3).sp, maxLines = 1)
                     Text(readout.longDate, color = Color.White.copy(alpha = .56f), fontSize = 13.sp)
                     if (preferences.showBattery) Text(readout.batteryLabel, Modifier.padding(top = 24.dp),
@@ -110,6 +110,14 @@ fun SpotifyPlayerPanel(
     val context = LocalContext.current
     val connected = state.status == SpotifyStatus.CONNECTED
     val hasTrack = connected && state.title.isNotBlank()
+    var showAccessExplanation by remember { mutableStateOf(false) }
+    if (showAccessExplanation) AlertDialog(
+        onDismissRequest = { showAccessExplanation = false },
+        title = { Text("Allow media access?") },
+        text = { Text("Android uses notification access to expose active media sessions. This is a broad system permission. Stilltime uses it only to show Spotify’s song, artwork and playback controls; it does not read or store notification messages. You can revoke access in Android Settings anytime.") },
+        confirmButton = { TextButton(onClick = { showAccessExplanation = false; onConnect() }) { Text("Open Android settings") } },
+        dismissButton = { TextButton(onClick = { showAccessExplanation = false }) { Text("Not now") } },
+    )
     BoxWithConstraints(modifier.background(Color(0xFF090C0B)).padding(horizontal = 26.dp, vertical = 14.dp)) {
         val chromeHeight = 210.dp + (if (!connected && interactive) 48.dp else 0.dp) +
             (if (state.error != null) 42.dp else 0.dp)
@@ -131,6 +139,8 @@ fun SpotifyPlayerPanel(
                 hasTrack -> state.title
                 state.status == SpotifyStatus.SETUP_REQUIRED -> "Spotify setup pending"
                 state.status == SpotifyStatus.APP_MISSING -> "Install Spotify"
+                state.status == SpotifyStatus.SDK_UNAVAILABLE -> "Spotify found · SDK unavailable"
+                state.status == SpotifyStatus.ACCESS_REQUIRED -> "Allow media access"
                 state.status == SpotifyStatus.CONNECTING -> "Connecting…"
                 connected -> "Ready when you are"
                 else -> "Your music, beside time"
@@ -144,6 +154,8 @@ fun SpotifyPlayerPanel(
                 Text(if (hasTrack) state.artist else when (state.status) {
                     SpotifyStatus.SETUP_REQUIRED -> "A registered Spotify Client ID is needed."
                     SpotifyStatus.APP_MISSING -> "Play music in the Spotify Android app."
+                    SpotifyStatus.SDK_UNAVAILABLE -> "Choose Device player in Customize, or use the official Spotify app."
+                    SpotifyStatus.ACCESS_REQUIRED -> "Optional Android media-session connection."
                     else -> "Play something in Spotify to begin."
                 }, Modifier.fillMaxWidth().padding(top = 3.dp).then(scrollModifier),
                     color = Color.White.copy(alpha = .48f), fontSize = 11.sp, lineHeight = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -158,11 +170,15 @@ fun SpotifyPlayerPanel(
             }
             if (!connected && interactive) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (state.status != SpotifyStatus.SETUP_REQUIRED && state.status != SpotifyStatus.APP_MISSING) {
-                        TextButton(onClick = onConnect, enabled = state.status != SpotifyStatus.CONNECTING) { Text("Connect", color = SpotifyGreen) }
+                    if (state.status !in setOf(SpotifyStatus.SETUP_REQUIRED, SpotifyStatus.APP_MISSING, SpotifyStatus.SDK_UNAVAILABLE)) {
+                        TextButton(onClick = {
+                            if (state.status == SpotifyStatus.ACCESS_REQUIRED) showAccessExplanation = true else onConnect()
+                        }, enabled = state.status != SpotifyStatus.CONNECTING) {
+                            Text(if (state.status == SpotifyStatus.ACCESS_REQUIRED) "Grant access" else "Connect", color = SpotifyGreen)
+                        }
                     }
                     TextButton(onClick = {
-                        val intent = context.packageManager.getLaunchIntentForPackage("com.spotify.music")
+                        val intent = SpotifyPackages.installed(context).firstNotNullOfOrNull { context.packageManager.getLaunchIntentForPackage(it) }
                             ?: Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=com.spotify.music".toUri())
                         try { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: ActivityNotFoundException) { }
                     }) { Text("Open Spotify", color = Color.White.copy(alpha = .7f)) }

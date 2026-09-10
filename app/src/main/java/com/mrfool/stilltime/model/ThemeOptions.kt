@@ -18,4 +18,7 @@ enum class WallpaperLayout(val title: String) { CINEMA("Cinema"), GALLERY("Galle
 enum class WallpaperDim(val title: String, val opacity: Float) {
     SOFT("Soft", 0.22f), BALANCED("Balanced", 0.48f), NIGHT("Night", 0.72f),
 }
-enum class ClockTypography(val title: String) { CLASSIC("Classic"), ROUNDED("Rounded"), EDITORIAL("Editorial") }
+enum class ClockTypography(val title: String) {
+    ORIGINAL("Theme original"), CLASSIC("Modern"), ROUNDED("Rounded"),
+    EDITORIAL("Serif"), MONO("Mono"), CONDENSED("Condensed"),
+}

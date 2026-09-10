@@ -23,10 +23,13 @@ import com.mrfool.stilltime.model.WallpaperLayout
 
 val RoundedClockFont = FontFamily(Font(R.font.fredoka))
 
-fun ClockTypography.fontFamily(): FontFamily = when (this) {
+fun ClockTypography.fontFamily(original: FontFamily = RoundedClockFont): FontFamily = when (this) {
+    ClockTypography.ORIGINAL -> original
     ClockTypography.CLASSIC -> FontFamily.SansSerif
     ClockTypography.ROUNDED -> RoundedClockFont
     ClockTypography.EDITORIAL -> FontFamily.Serif
+    ClockTypography.MONO -> FontFamily.Monospace
+    ClockTypography.CONDENSED -> FontFamily(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL))
 }
 
 @Composable
@@ -59,10 +62,10 @@ fun WallpaperClock(preferences: ClockPreferences, readout: ClockReadout, modifie
             .then(if (gallery && !landscape) Modifier.fillMaxHeight(.45f) else Modifier)
             .padding(horizontal = 28.dp, vertical = 36.dp), verticalArrangement = Arrangement.Center,
             horizontalAlignment = if (landscape || poster) Alignment.Start else Alignment.CenterHorizontally) {
-            Text(preferences.wallpaper.title.uppercase(), color = Color(preferences.wallpaper.accent),
+            Text(preferences.wallpaper.title.uppercase(), color = preferences.accentColor(Color(preferences.wallpaper.accent)),
                 fontSize = 10.sp, letterSpacing = 3.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
-            Text(readout.time.digital, color = Color.White, fontFamily = preferences.typography.fontFamily(),
+            Text(readout.time.digital, color = preferences.digitColor(Color.White), fontFamily = preferences.typography.fontFamily(),
                 fontSize = clockTextSize,
                 fontWeight = FontWeight.Medium, letterSpacing = (-3).sp, maxLines = 1)
             if (preferences.showDate) Text(readout.longDate, color = Color.White.copy(alpha = .76f), fontSize = 14.sp)

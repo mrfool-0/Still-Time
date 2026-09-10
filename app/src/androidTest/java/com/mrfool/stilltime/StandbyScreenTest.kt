@@ -32,7 +32,13 @@ class StandbyScreenTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Before fun resetStyle() {
-        composeRule.runOnIdle { SettingsStore(composeRule.activity).use { it.setStyle(ClockStyle.PEBBLE) } }
+        composeRule.runOnIdle { SettingsStore(composeRule.activity).use {
+            it.setStyle(ClockStyle.PEBBLE)
+            it.setThemeColors(true)
+            it.setTintDigits(false)
+            it.setFlipAnimation(true)
+            it.setTypography(com.mrfool.stilltime.model.ClockTypography.ORIGINAL)
+        } }
     }
 
     @Test
@@ -44,7 +50,7 @@ class StandbyScreenTest {
         composeRule.onNodeWithTag("style_MUSE", useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("style_MUSE", useUnmergedTree = true).assertIsSelected()
-        composeRule.onNodeWithTag("settings_list", useUnmergedTree = true).performScrollToIndex(1)
+        composeRule.onNodeWithTag("settings_list", useUnmergedTree = true).performScrollToIndex(2)
         composeRule.onNodeWithText("MUSE FEED").assertExists()
         composeRule.onNodeWithText("View source").assertExists()
     }
@@ -56,6 +62,10 @@ class StandbyScreenTest {
         composeRule.onNodeWithTag("settings_list", useUnmergedTree = true).performScrollToIndex(1)
         composeRule.onNodeWithTag("wallpaper_NEON", useUnmergedTree = true).performClick()
         composeRule.onNodeWithTag("wallpaper_NEON", useUnmergedTree = true).assertIsSelected()
+        val directory = File(composeRule.activity.filesDir, "theme-captures").apply { mkdirs() }
+        File(directory, "wallpaper_gallery_menu.png").outputStream().use {
+            composeRule.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
         composeRule.runOnIdle {
             SettingsStore(composeRule.activity).use { assertEquals(WallpaperChoice.NEON, it.state.value.wallpaper) }
         }

@@ -4,6 +4,7 @@
 
     <queries>
         <package android:name="com.spotify.music" />
+        <package android:name="com.spotify.lite" />
     </queries>
 
     <uses-feature
@@ -28,6 +29,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service android:name=".spotify.SpotifyMediaAccessService"
+            android:label="Stilltime media access"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter>
+        </service>
 
         <service
             android:name=".dream.StilltimeDreamService"

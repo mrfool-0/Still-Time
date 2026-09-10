@@ -58,9 +58,11 @@ fun PanoramaClock(preferences: ClockPreferences, readout: ClockReadout, red: Boo
                 .format(DateTimeFormatter.ofPattern(if (readout.use24HourTime) "HH:mm" else "h:mm a", locale))
         } ?: "NO ALARM"
     }
-    val paint = remember { Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.create("sans-serif", Typeface.NORMAL) } }
-    val ink = if (red) NightRed else Color.White
-    val highlight = if (red) NightRed else Color(0xFFFFAC58)
+    val paint = remember(preferences.typography) { Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        typeface = preferences.typography.typeface(context, Typeface.create("sans-serif", Typeface.NORMAL))
+    } }
+    val ink = preferences.accentColor(if (red) NightRed else Color.White)
+    val highlight = preferences.accentColor(if (red) NightRed else Color(0xFFFFAC58))
     Canvas(modifier.background(Color.Black).padding(22.dp)) {
         val cx = size.width / 2
         val cy = size.height / 2
@@ -91,7 +93,7 @@ fun PanoramaClock(preferences: ClockPreferences, readout: ClockReadout, red: Boo
         if (preferences.showDate) {
             label(readout.moment.format(DateTimeFormatter.ofPattern("EEE d", locale)).uppercase(locale),
                 if (portrait) cx else cx + halfW * .39f, if (portrait) cy + halfH * 1.52f else cy,
-                metaSize, if (red) ink else Color(0xFFDF687C), paint)
+                metaSize, if (red) ink else preferences.accentColor(Color(0xFFDF687C)), paint)
         }
         fun hand(degrees: Double, length: Float, width: Float, color: Color) {
             val rad = Math.toRadians(degrees)
@@ -110,11 +112,15 @@ fun PanoramaClock(preferences: ClockPreferences, readout: ClockReadout, red: Boo
 
 @Composable
 fun CalendarClock(preferences: ClockPreferences, readout: ClockReadout, modifier: Modifier) {
+    val context = LocalContext.current
+    val NightRed = preferences.accentColor(NightRed)
     val locale = LocalConfiguration.current.locales[0]
     val month = YearMonth.from(readout.moment)
     val firstDay = WeekFields.of(locale).firstDayOfWeek
     val cells = remember(month, firstDay) { CalendarMonth.cells(month, firstDay) }
-    val paint = remember { Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL) } }
+    val paint = remember(preferences.typography) { Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        typeface = preferences.typography.typeface(context, Typeface.create("sans-serif-medium", Typeface.NORMAL))
+    } }
     BoxWithConstraints(modifier.background(Color.Black).padding(20.dp)) {
         val analog: @Composable (Modifier) -> Unit = { dialModifier ->
             Canvas(dialModifier.padding(10.dp)) {
@@ -177,9 +183,9 @@ fun CalendarClock(preferences: ClockPreferences, readout: ClockReadout, modifier
 @Composable
 fun ChromaClock(preferences: ClockPreferences, readout: ClockReadout, modifier: Modifier) {
     val context = LocalContext.current
-    val paint = remember {
+    val paint = remember(preferences.typography) {
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            typeface = ResourcesCompat.getFont(context, R.font.fredoka)
+            typeface = preferences.typography.typeface(context, ResourcesCompat.getFont(context, R.font.fredoka) ?: Typeface.DEFAULT_BOLD)
             fontVariationSettings = "'wght' 700"
         }
     }
@@ -190,7 +196,10 @@ fun ChromaClock(preferences: ClockPreferences, readout: ClockReadout, modifier: 
             val advances = digits.map { paint.measureText(it.toString()) * .80f }
             val width = advances.sum() + 58f
             val scale = min(size.width / width, size.height * .65f / 300f)
-            val colors = listOf(0xFFEF464E, 0xFFF99536, 0xFFDCE16D, 0xFFD6EAC0)
+            val colors = if (preferences.themeColors) listOf(0xFFEF464E.toInt(), 0xFFF99536.toInt(), 0xFFDCE16D.toInt(), 0xFFD6EAC0.toInt())
+                else listOf(.0f, .20f, .40f, .65f).map {
+                    androidx.compose.ui.graphics.lerp(Color(preferences.accent.seed), Color.White, it).toArgb()
+                }
             drawIntoCanvas { canvas ->
                 val native = canvas.nativeCanvas
                 native.withTranslation((size.width - width * scale) / 2, size.height / 2) {
@@ -199,13 +208,13 @@ fun ChromaClock(preferences: ClockPreferences, readout: ClockReadout, modifier: 
                 digits.forEachIndexed { index, digit ->
                     if (index == 2) x += 58f
                     native.withRotation(if (index % 2 == 0) -7f else 5f, x + advances[index] / 2, 0f) {
-                        paint.color = colors[index].toInt()
+                        paint.color = colors[index]
                         paint.alpha = 216
                         drawText(digit.toString(), x, -(paint.ascent() + paint.descent()) / 2, paint)
                     }
                     x += advances[index]
                 }
-                paint.color = 0xFFF3D82D.toInt()
+                paint.color = preferences.accentColor(Color(0xFFF3D82D)).toArgb()
                 paint.alpha = 220
                 val colonX = advances.take(2).sum() + 14f
                 native.drawCircle(colonX, -46f, 24f, paint)

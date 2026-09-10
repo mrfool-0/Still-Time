@@ -75,7 +75,7 @@ fun ClockFace(
     modifier: Modifier = Modifier,
     animationActive: Boolean = true,
 ) {
-    val accent = remember(preferences.accent) { Color(preferences.accent.seed) }
+    val accent = preferences.accentColor(Color(0xFFFFB7C5))
     val accessibleModifier = modifier.clearAndSetSemantics {
         contentDescription = readout.accessibilityLabel
     }
@@ -86,7 +86,7 @@ fun ClockFace(
         ClockStyle.EDITORIAL -> EditorialClock(preferences, readout, accent, accessibleModifier)
         ClockStyle.ORBIT -> OrbitClock(preferences, readout, accent, accessibleModifier)
         ClockStyle.SOLAR -> SolarClock(preferences, readout, accent, accessibleModifier)
-        ClockStyle.MUSE -> MuseClock(preferences, readout, accent, accessibleModifier)
+        ClockStyle.MUSE -> MuseClock(preferences, readout, accent, accessibleModifier, animationActive)
         ClockStyle.NOIR -> NoirClock(preferences, readout, accent, accessibleModifier)
         ClockStyle.PANORAMA -> PanoramaClock(preferences, readout, false, accessibleModifier)
         ClockStyle.REDLINE -> PanoramaClock(preferences, readout, true, accessibleModifier)
@@ -142,7 +142,8 @@ private fun PebbleClock(
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = readout.time.digital,
-                    color = Color(0xFFFFF7F1),
+                    color = preferences.digitColor(Color(0xFFFFF7F1)),
+                    fontFamily = preferences.typography.fontFamily(FontFamily.SansSerif),
                     fontSize = timeSize,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = (-5).sp,
@@ -289,6 +290,8 @@ private fun FlipClock(
                         accent = accent,
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         animate = animationActive && preferences.flipAnimation,
+                        fontFamily = preferences.typography.fontFamily(FontFamily.Monospace),
+                        digitColor = preferences.digitColor(Color(0xFFF5EEE7)),
                     )
                 }
             }
@@ -375,9 +378,9 @@ private fun EditorialClock(
         ) {
             Text(
                 text = readout.time.digital,
-                color = Color(0xFF171513),
+                color = preferences.digitColor(Color(0xFF171513), lightBackground = true),
                 fontSize = mainSize,
-                fontFamily = FontFamily.Serif,
+                fontFamily = preferences.typography.fontFamily(FontFamily.Serif),
                 fontWeight = FontWeight.Normal,
                 letterSpacing = (-6).sp,
                 maxLines = 1,
@@ -496,7 +499,8 @@ private fun OrbitClock(
         ) {
             Text(
                 text = readout.time.spoken,
-                color = handColor,
+                color = preferences.digitColor(handColor),
+                fontFamily = preferences.typography.fontFamily(FontFamily.SansSerif),
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 1.sp,
@@ -589,7 +593,8 @@ private fun SolarClock(
         ) {
             Text(
                 text = readout.time.digital,
-                color = if (isDay) Color(0xFF20283A) else Color(0xFFF8F1EB),
+                color = preferences.digitColor(if (isDay) Color(0xFF20283A) else Color(0xFFF8F1EB), lightBackground = isDay),
+                fontFamily = preferences.typography.fontFamily(FontFamily.SansSerif),
                 fontSize = timeSize,
                 fontWeight = FontWeight.Light,
                 letterSpacing = (-4).sp,
@@ -634,6 +639,7 @@ private fun MuseClock(
     readout: ClockReadout,
     accent: Color,
     modifier: Modifier,
+    animationActive: Boolean,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isPortrait = maxHeight > maxWidth
@@ -650,32 +656,17 @@ private fun MuseClock(
             MotivationCategory.LIFE_FACT -> "LIFE NOTE"
             MotivationCategory.ANIME -> "ANIME MOMENT"
             MotivationCategory.ALL -> "MUSE"
+            else -> "SERIES-INSPIRED"
         }
-        val openingMark = if (readout.motivation.category == MotivationCategory.LIFE_FACT) {
+        val openingMark = if (readout.motivation.category == MotivationCategory.LIFE_FACT || readout.motivation.category.inspiredBy != null) {
             "✦"
         } else {
             "“"
         }
 
-        Canvas(Modifier.fillMaxSize()) {
-            drawRect(
-                brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFF16162A), Color(0xFF24203C), Color(0xFF151521)),
-                    start = Offset.Zero,
-                    end = Offset(size.width, size.height),
-                ),
-            )
-            drawCircle(
-                color = accent.copy(alpha = 0.12f),
-                radius = size.minDimension * 0.42f,
-                center = Offset(size.width * 0.9f, size.height * 0.08f),
-            )
-            drawCircle(
-                color = Color(0xFF9AD9FF).copy(alpha = 0.07f),
-                radius = size.minDimension * 0.34f,
-                center = Offset(size.width * 0.05f, size.height * 0.95f),
-            )
-        }
+        MuseAurora(readout.motivation.text, accent,
+            animate = animationActive && preferences.museMotion &&
+                preferences.brightness != com.mrfool.stilltime.model.BrightnessMode.NIGHT)
 
         Row(
             modifier = Modifier
@@ -688,7 +679,8 @@ private fun MuseClock(
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = readout.time.digital,
-                    color = Color(0xFFFFFBF7),
+                    color = preferences.digitColor(Color(0xFFFFFBF7)),
+                    fontFamily = preferences.typography.fontFamily(FontFamily.SansSerif),
                     fontSize = if (isPortrait) 24.sp else 28.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = (-1).sp,
@@ -750,7 +742,7 @@ private fun MuseClock(
                 modifier = Modifier.padding(start = 36.dp, top = 4.dp),
                 color = Color.White.copy(alpha = 0.44f),
                 fontSize = 10.sp,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -805,7 +797,7 @@ private fun NoirClock(
             }
         }
 
-        SevenSegmentDisplay(
+        if (preferences.typography == com.mrfool.stilltime.model.ClockTypography.ORIGINAL) SevenSegmentDisplay(
             value = digits,
             color = accent,
             modifier = Modifier
@@ -813,6 +805,11 @@ private fun NoirClock(
                 .height(canvasHeight)
                 .align(Alignment.Center),
         )
+        else Text(digits, Modifier.align(Alignment.Center).padding(20.dp), color = accent,
+            fontFamily = preferences.typography.fontFamily(), maxLines = 1,
+            fontSize = with(LocalDensity.current) {
+                (minOf(maxWidth * (if (preferences.showSeconds) .14f else .22f), maxHeight * .36f)).toSp()
+            })
 
         Row(
             modifier = Modifier.align(Alignment.BottomCenter).padding(26.dp),

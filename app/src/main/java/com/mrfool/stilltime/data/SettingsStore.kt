@@ -45,7 +45,14 @@ class SettingsStore(context: Context) :
 
     fun setBrightness(value: BrightnessMode) = edit(KEY_BRIGHTNESS, value.name)
 
-    fun setAccent(value: AccentChoice) = edit(KEY_ACCENT, value.name)
+    fun setAccent(value: AccentChoice) {
+        preferences.edit().putString(KEY_ACCENT, value.name).putBoolean("theme_colors", false).apply()
+        mutableState.value = readPreferences()
+    }
+    fun setThemeColors(value: Boolean) = edit("theme_colors", value)
+    fun setTintDigits(value: Boolean) = edit("tint_digits", value)
+    fun setDevicePlayer(value: Boolean) = edit("device_player", value)
+    fun setMuseMotion(value: Boolean) = edit("muse_motion", value)
 
     fun setMotivationCategory(value: MotivationCategory) =
         edit(KEY_MOTIVATION_CATEGORY, value.name)
@@ -99,9 +106,13 @@ class SettingsStore(context: Context) :
         wallpaper = enumValue(preferences.getString("wallpaper", null), WallpaperChoice.MOON),
         wallpaperLayout = enumValue(preferences.getString("wallpaper_layout", null), WallpaperLayout.CINEMA),
         wallpaperDim = enumValue(preferences.getString("wallpaper_dim", null), WallpaperDim.BALANCED),
-        typography = enumValue(preferences.getString("typography", null), ClockTypography.ROUNDED),
+        typography = enumValue(preferences.getString("typography", null), ClockTypography.ORIGINAL),
         spotifyMarquee = preferences.getBoolean("spotify_marquee", true),
         flipAnimation = preferences.getBoolean("flip_animation", true),
+        themeColors = preferences.getBoolean("theme_colors", true),
+        tintDigits = preferences.getBoolean("tint_digits", false),
+        devicePlayer = preferences.getBoolean("device_player", false),
+        museMotion = preferences.getBoolean("muse_motion", true),
     )
 
     private inline fun <reified T : Enum<T>> enumValue(raw: String?, fallback: T): T =

@@ -65,7 +65,7 @@ val ClockStyle.designNote: String get() = when (this) {
     ClockStyle.EDITORIAL -> "Bold type · paper tones"
     ClockStyle.ORBIT -> "Analog precision · mint accents"
     ClockStyle.SOLAR -> "Sunlit gradients · playful warmth"
-    ClockStyle.MUSE -> "203 sourced thoughts · slow rotation"
+    ClockStyle.MUSE -> "Wisdom & series-inspired thoughts · every 30 seconds"
     ClockStyle.NOIR -> "Pure black · quiet essentials"
     ClockStyle.PANORAMA -> "Wide dial · crisp white"
     ClockStyle.REDLINE -> "Wide dial · midnight red"

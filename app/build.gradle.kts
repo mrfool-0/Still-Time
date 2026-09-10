@@ -13,8 +13,8 @@ android {
         applicationId = "com.mrfool.stilltime"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
 
         val spotifyClientId = providers.gradleProperty("SPOTIFY_CLIENT_ID").orElse("").get()
         val spotifyRedirectUri = providers.gradleProperty("SPOTIFY_REDIRECT_URI")
@@ -23,7 +23,8 @@ android {
         buildConfigField("String", "SPOTIFY_CLIENT_ID", quoted(spotifyClientId))
         buildConfigField("String", "SPOTIFY_REDIRECT_URI", quoted(spotifyRedirectUri))
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = if (providers.gradleProperty("testBuildType").orElse("debug").get() != "debug")
+            "com.mrfool.stilltime.ReleaseSmokeRunner" else "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
@@ -52,7 +53,14 @@ android {
                 "proguard-rules.pro",
             )
         }
+        create("qa") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
+        }
     }
+
+    testBuildType = providers.gradleProperty("testBuildType").orElse("debug").get()
 
     packaging {
         resources.excludes += setOf(
@@ -85,6 +93,7 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+    add("qaImplementation", "androidx.compose.ui:ui-test-manifest")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")

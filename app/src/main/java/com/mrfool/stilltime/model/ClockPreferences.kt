@@ -46,13 +46,33 @@ enum class AccentChoice(val seed: Long) {
     APRICOT(0xFFFFC98B),
     LILAC(0xFFC8B6FF),
     SKY(0xFF9AD9FF),
+    CORAL(0xFFFF8F91),
+    LAVENDER(0xFFADA7FF),
+    ICE(0xFFC6EFFF),
+    JADE(0xFF71D8AF),
+    AQUA(0xFF6FDED9),
+    LIME(0xFFD3E98A),
+    GOLD(0xFFEED08B),
+    AMBER(0xFFFFB765),
+    PEACH(0xFFFFD9C2),
+    ORCHID(0xFFE4A6ED),
+    BERRY(0xFFE58ABE),
+    BLUE(0xFF8FAEFA),
+    SAGE(0xFFB8C9A3),
+    SAND(0xFFDDCBB4),
+    FROST(0xFFE8EDF2),
 }
 
-enum class MotivationCategory(@StringRes val labelRes: Int) {
+enum class MotivationCategory(@StringRes val labelRes: Int, val inspiredBy: String? = null) {
     ALL(R.string.motivation_all),
     WISDOM(R.string.motivation_wisdom),
     LIFE_FACT(R.string.motivation_life_facts),
     ANIME(R.string.motivation_anime),
+    ONE_PIECE(R.string.motivation_one_piece, "One Piece"),
+    NARUTO(R.string.motivation_naruto, "Naruto"),
+    LOTM(R.string.motivation_lotm, "Lord of Mysteries · novel"),
+    BLEACH(R.string.motivation_bleach, "Bleach"),
+    ATTACK_ON_TITAN(R.string.motivation_aot, "Attack on Titan"),
 }
 
 data class ClockPreferences(
@@ -69,7 +89,11 @@ data class ClockPreferences(
     val wallpaper: WallpaperChoice = WallpaperChoice.MOON,
     val wallpaperLayout: WallpaperLayout = WallpaperLayout.CINEMA,
     val wallpaperDim: WallpaperDim = WallpaperDim.BALANCED,
-    val typography: ClockTypography = ClockTypography.ROUNDED,
+    val typography: ClockTypography = ClockTypography.ORIGINAL,
     val spotifyMarquee: Boolean = true,
     val flipAnimation: Boolean = true,
+    val themeColors: Boolean = true,
+    val tintDigits: Boolean = false,
+    val devicePlayer: Boolean = false,
+    val museMotion: Boolean = true,
 )

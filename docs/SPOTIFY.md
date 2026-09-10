@@ -1,4 +1,16 @@
-# Spotify theme and v1.1 verification
+# Spotify theme and connection help
+
+## Version 1.2 fixes
+
+The 1.1 optimized APK could report “Install Spotify” even when Spotify was installed. Its R8 usage report showed that `ReleaseSpotifyLocator`'s public constructor was removed: the SDK loads it using `Class.forName(...).getConstructor().newInstance()`, while its bundled rules kept the class without its constructor. Version 1.2 explicitly retains the provider, constructor, and interface. A native instrumentation smoke runner validates reflection on the actual non-debuggable APK.
+
+Installation and SDK support are now distinguished. If a Spotify package exists but App Remote cannot use it, the UI says “Spotify found · SDK unavailable” and suggests Device player instead of repeatedly directing the user to install Spotify. Spotify's signature validation has not been bypassed.
+
+### Optional Device player
+
+In Customize → Connection method select **Device player**. Tap **Grant access**, read the explanation, then optionally approve Stilltime media access in Android Settings. Return to Stilltime and play a song in Spotify on the same phone. This uses Android's media-session metadata and controls, not Spotify developer authorization. It only follows supported Spotify-package sessions and does not read notification messages. Android's permission is broad and is never granted automatically. Revoke it in Android Settings at any time. If Spotify supplies no artwork or skip action, Stilltime shows a placeholder or disables that action.
+
+Live Spotify playback on a physical phone remains unverified; local metadata/transport mapping and consent UI are tested with fixtures.
 
 ## Registered application
 
@@ -13,7 +25,7 @@ The Client ID is a public application identifier. The client secret was not view
 
 ## Install and connect
 
-1. Install the supplied Stilltime 1.1 preview APK on an Android 8.0+ device. It can update the original Stilltime APK because both use the same development certificate.
+1. Install the supplied Stilltime 1.2 preview APK on an Android 8.0+ device. It can update the original Stilltime APK because both use the same development certificate.
 2. Install/open the official Spotify app and sign in to the intended account.
 3. In Stilltime, choose **Spotify** from Customize and rotate the device to landscape.
 4. Tap **Connect** and approve Spotify's playback-control consent. Existing approval may allow a silent connection first.

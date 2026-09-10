@@ -93,6 +93,8 @@ import com.mrfool.stilltime.model.WallpaperLayout
 import com.mrfool.stilltime.model.WallpaperDim
 import com.mrfool.stilltime.model.ClockTypography
 import com.mrfool.stilltime.spotify.SpotifyController
+import com.mrfool.stilltime.spotify.StandbyPlayer
+import com.mrfool.stilltime.spotify.DevicePlayerController
 import com.mrfool.stilltime.ui.components.SpotifyClock
 import com.mrfool.stilltime.power.BurnInOffset
 import com.mrfool.stilltime.power.rememberBatteryState
@@ -101,6 +103,7 @@ import com.mrfool.stilltime.ui.components.ClockFace
 import com.mrfool.stilltime.ui.components.ClockReadout
 import com.mrfool.stilltime.ui.components.ThemePreview
 import com.mrfool.stilltime.ui.components.designNote
+import com.mrfool.stilltime.ui.components.fontFamily
 import com.mrfool.stilltime.util.TimeTextFormatter
 import kotlinx.coroutines.delay
 
@@ -124,6 +127,7 @@ fun StandbyScreen(
     val moment by rememberClockMoment(
         showSeconds = secondsEnabled,
         isActive = tickerActive,
+        refreshSeconds = if (preferences.style == ClockStyle.MUSE) MotivationLibrary.ROTATION_SECONDS else 60L,
     )
     val battery by rememberBatteryState()
     val time = remember(moment, use24HourTime, secondsEnabled, locale) {
@@ -141,13 +145,13 @@ fun StandbyScreen(
         stringResource(R.string.battery_percent, battery.percent)
     }
     val motivation = remember(
-        moment.toEpochSecond() / 900L,
+        moment.toEpochSecond() / MotivationLibrary.ROTATION_SECONDS,
         preferences.motivationCategory,
     ) {
         MotivationLibrary.entryFor(
             context = context,
             category = preferences.motivationCategory,
-            epochMinute = moment.toEpochSecond() / 60L,
+            epochSecond = moment.toEpochSecond(),
         )
     }
     val accessibilityLabel = buildList {
@@ -155,6 +159,7 @@ fun StandbyScreen(
         if (preferences.style == ClockStyle.MUSE) {
             add(motivation.text)
             add(motivation.attribution)
+            add(motivation.sourceTitle)
         }
         if (preferences.showDate) add(longDate)
         if (preferences.showBattery) add(batteryLabel)
@@ -198,7 +203,9 @@ fun StandbyScreen(
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         if (preferences.style == ClockStyle.SPOTIFY) {
-            val controller = remember(context) { SpotifyController(context) }
+            val controller: StandbyPlayer = remember(context, preferences.devicePlayer) {
+                if (preferences.devicePlayer) DevicePlayerController(context) else SpotifyController(context)
+            }
             val spotifyState by controller.state.collectAsState()
             DisposableEffect(controller, connectionActive) {
                 controller.setActive(connectionActive)
@@ -417,11 +424,13 @@ private fun SettingsOverlay(
                 }
                 if (preferences.style == ClockStyle.WALLPAPER) {
                     item {
-                        SectionTitle("Your wallpapers")
+                        SectionTitle("Your wallpapers · ${WallpaperChoice.entries.size} included")
                         Spacer(Modifier.height(12.dp))
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.testTag("wallpaper_picker")) {
-                            items(WallpaperChoice.entries, key = { it.name }) { wallpaper ->
-                                Column(Modifier.width(132.dp).clip(RoundedCornerShape(12.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.testTag("wallpaper_picker")) {
+                            WallpaperChoice.entries.chunked(2).forEach { pair ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            pair.forEach { wallpaper ->
+                                Column(Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
                                     .background(Color.White.copy(alpha = if (wallpaper == preferences.wallpaper) .18f else .06f))
                                     .selectable(selected = wallpaper == preferences.wallpaper, role = Role.RadioButton,
                                         onClick = { settingsStore.setWallpaper(wallpaper) })
@@ -430,6 +439,8 @@ private fun SettingsOverlay(
                                         modifier = Modifier.fillMaxWidth().height(76.dp), contentScale = ContentScale.Crop)
                                     Text(wallpaper.title, Modifier.padding(10.dp), color = Color.White, fontSize = 11.sp)
                                 }
+                            }
+                            }
                             }
                         }
                         Spacer(Modifier.height(16.dp))
@@ -440,12 +451,31 @@ private fun SettingsOverlay(
                         ChoiceRow(WallpaperDim.entries, preferences.wallpaperDim, { it.title }, settingsStore::setWallpaperDim)
                     }
                 }
-                if (preferences.style == ClockStyle.SPOTIFY || preferences.style == ClockStyle.WALLPAPER) {
+                run {
                     item {
                         SectionTitle("Clock typography")
                         Spacer(Modifier.height(10.dp))
-                        ChoiceRow(ClockTypography.entries, preferences.typography, { it.title }, settingsStore::setTypography)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(ClockTypography.entries) { type ->
+                                Surface(Modifier.width(112.dp).height(82.dp).clip(RoundedCornerShape(14.dp))
+                                    .selectable(type == preferences.typography, role = Role.RadioButton, onClick = { settingsStore.setTypography(type) })
+                                    .testTag("type_${type.name}"), color = Color(0xFF242529),
+                                    border = if (type == preferences.typography) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                                    shape = RoundedCornerShape(14.dp)) {
+                                    Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("10:08", fontFamily = type.fontFamily(), fontSize = 25.sp, color = Color.White)
+                                        Text(type.title, fontSize = 10.sp, color = Color(0xFFB5B6BB))
+                                    }
+                                }
+                            }
+                        }
                         if (preferences.style == ClockStyle.SPOTIFY) {
+                            Spacer(Modifier.height(16.dp))
+                            SectionTitle("Connection method")
+                            ChoiceRow(listOf(false, true), preferences.devicePlayer,
+                                { if (it) "Device player" else "Spotify App Remote" }, settingsStore::setDevicePlayer)
+                            Text("App Remote uses Spotify authorization. Device player is an optional fallback using Android media access; it requires your approval in Android Settings.",
+                                Modifier.padding(top = 10.dp), color = Color(0xFFB5B6BB), fontSize = 12.sp)
                             SettingSwitch("Scroll long song titles", preferences.spotifyMarquee, settingsStore::setSpotifyMarquee)
                             Text("Progress updates once per second during playback. Long text scrolls three times per track. The clock uses HH:mm.",
                                 color = Color.White.copy(alpha = .5f), fontSize = 11.sp)
@@ -468,6 +498,11 @@ private fun SettingsOverlay(
                             color = Color.White.copy(alpha = 0.5f),
                             fontSize = 11.sp,
                         )
+                        Text("The five series packs contain original Stilltime reflections, not canon dialogue. Their links provide series context; LOTM refers to the novel.",
+                            Modifier.padding(top = 8.dp), color = Color(0xFFB5B6BB), fontSize = 11.sp)
+                        SettingSwitch("Aurora background", preferences.museMotion, settingsStore::setMuseMotion)
+                        Text("A soft light drift with each new thought, then stillness. Pauses in menus, at night brightness and when the app is hidden; respects system animation settings.",
+                            color = Color.White.copy(alpha = .5f), fontSize = 11.sp)
                         Button(
                             modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(48.dp),
                             onClick = {
@@ -486,7 +521,7 @@ private fun SettingsOverlay(
                             shape = RoundedCornerShape(16.dp),
                         ) {
                             Text(
-                                text = stringResource(R.string.view_source),
+                                text = if (currentMotivation.category.inspiredBy != null) "About the inspiring series" else stringResource(R.string.view_source),
                                 fontWeight = FontWeight.Bold,
                             )
                         }
@@ -495,13 +530,13 @@ private fun SettingsOverlay(
 
                 item {
                     SectionTitle(stringResource(R.string.accent_color))
+                    SettingSwitch("Original theme colors", preferences.themeColors, settingsStore::setThemeColors)
                     Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        AccentChoice.entries.forEach { choice ->
-                            val selected = choice == preferences.accent
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AccentChoice.entries.chunked(5).forEach { paletteRow ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        paletteRow.forEach { choice ->
+                            val selected = !preferences.themeColors && choice == preferences.accent
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
@@ -527,7 +562,11 @@ private fun SettingsOverlay(
                                 }
                             }
                         }
+                        }
+                        }
                     }
+                    if (preferences.style !in setOf(ClockStyle.NOIR, ClockStyle.PANORAMA, ClockStyle.REDLINE, ClockStyle.CALENDAR, ClockStyle.CHROMA))
+                        SettingSwitch("Color the clock digits", preferences.tintDigits, settingsStore::setTintDigits)
                 }
 
                 item {
@@ -608,6 +647,9 @@ private fun SettingsOverlay(
                 item {
                     HorizontalDivider(color = Color.White.copy(alpha = 0.09f))
                     Spacer(Modifier.height(18.dp))
+                    Text("Screen saver setup", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                    Text("1. Select Stilltime clock in Android’s Screen saver settings.\n2. Choose While charging or docked.\n3. Use Start now to test. Let the screen time out while charging; pressing the power button usually does not start a screensaver.",
+                        Modifier.padding(vertical = 12.dp), color = Color(0xFFB5B6BB), fontSize = 12.sp)
                     Button(
                         modifier = Modifier.fillMaxWidth().height(54.dp),
                         onClick = {

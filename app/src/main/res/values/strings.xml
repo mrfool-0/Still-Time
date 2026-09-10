@@ -46,6 +46,11 @@
     <string name="motivation_wisdom">Famous wisdom</string>
     <string name="motivation_life_facts">Life facts</string>
     <string name="motivation_anime">Anime</string>
-    <string name="motivation_rotation_hint">A new sourced thought appears every 15 minutes.</string>
+    <string name="motivation_rotation_hint">A new sourced thought appears every 30 seconds while visible.</string>
     <string name="view_source">View source</string>
+    <string name="motivation_one_piece">One Piece</string>
+    <string name="motivation_naruto">Naruto</string>
+    <string name="motivation_lotm">LOTM novel</string>
+    <string name="motivation_bleach">Bleach</string>
+    <string name="motivation_aot">Attack on Titan</string>
 </resources>

@@ -35,6 +35,8 @@ fun SplitFlapCard(
     accent: Color,
     modifier: Modifier = Modifier,
     animate: Boolean = true,
+    fontFamily: FontFamily = FontFamily.Monospace,
+    digitColor: Color = Color(0xFFF5EEE7),
 ) {
     var settled by remember { mutableStateOf(value) }
     var outgoing by remember { mutableStateOf(value) }
@@ -80,8 +82,8 @@ fun SplitFlapCard(
                 }
             }.background(Brush.verticalGradient(listOf(Color(0xFF353332), Color(0xFF242322)))),
                 contentAlignment = Alignment.Center) {
-                Text(text, color = Color(0xFFF5EEE7), fontSize = textSize,
-                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium,
+                Text(text, color = digitColor, fontSize = textSize,
+                    fontFamily = fontFamily, fontWeight = FontWeight.Medium,
                     letterSpacing = (-3).sp, maxLines = 1)
             }
         }

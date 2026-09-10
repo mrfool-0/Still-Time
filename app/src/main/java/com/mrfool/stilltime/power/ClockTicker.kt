@@ -11,14 +11,16 @@ import java.time.ZonedDateTime
 fun rememberClockMoment(
     showSeconds: Boolean,
     isActive: Boolean,
+    refreshSeconds: Long = 60L,
 ): State<ZonedDateTime> = produceState(
     initialValue = ZonedDateTime.now(),
     key1 = showSeconds,
     key2 = isActive,
+    key3 = refreshSeconds,
 ) {
     if (!isActive) return@produceState
 
-    val intervalMillis = if (showSeconds) SECOND_MILLIS else MINUTE_MILLIS
+    val intervalMillis = if (showSeconds) SECOND_MILLIS else refreshSeconds.coerceIn(1L, 60L) * SECOND_MILLIS
     while (this.isActive) {
         val nowMillis = System.currentTimeMillis()
         value = ZonedDateTime.now()
@@ -28,6 +30,5 @@ fun rememberClockMoment(
 }
 
 private const val SECOND_MILLIS = 1_000L
-private const val MINUTE_MILLIS = 60_000L
 private const val MIN_DELAY_MILLIS = 16L
 private const val CLOCK_SETTLE_MILLIS = 12L

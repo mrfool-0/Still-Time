@@ -13,21 +13,24 @@ object MotivationLibrary {
     fun entryFor(
         context: Context,
         category: MotivationCategory,
-        epochMinute: Long,
+        epochSecond: Long,
     ): MotivationEntry {
         val matching = entries(context).let { all ->
             if (category == MotivationCategory.ALL) all else all.filter { it.category == category }
         }
         check(matching.isNotEmpty()) { "Motivation library has no entries for $category" }
-        val rotationBucket = Math.floorDiv(epochMinute, ROTATION_MINUTES)
-        val index = Math.floorMod(rotationBucket * INDEX_STEP + INDEX_SEED, matching.size.toLong())
-        return matching[index.toInt()]
+        return matching[indexFor(epochSecond, matching.size)]
+    }
+
+    fun indexFor(epochSecond: Long, size: Int): Int {
+        require(size > 0)
+        return Math.floorMod(Math.floorDiv(epochSecond, ROTATION_SECONDS) + INDEX_SEED, size.toLong()).toInt()
     }
 
     fun entries(context: Context): List<MotivationEntry> = cachedEntries ?: synchronized(this) {
-        cachedEntries ?: context.resources.openRawResource(R.raw.motivation).bufferedReader().use {
-            parse(it.readText()).also { parsed -> cachedEntries = parsed }
-        }
+        cachedEntries ?: listOf(R.raw.motivation, R.raw.series_motivation).flatMap { resource ->
+            context.resources.openRawResource(resource).bufferedReader().use { parse(it.readText()) }
+        }.also { cachedEntries = it }
     }
 
     @VisibleForTesting
@@ -49,7 +52,6 @@ object MotivationLibrary {
         .toList()
 
     private const val FIELD_COUNT = 5
-    private const val ROTATION_MINUTES = 15L
-    private const val INDEX_STEP = 73L
+    const val ROTATION_SECONDS = 30L
     private const val INDEX_SEED = 17L
 }

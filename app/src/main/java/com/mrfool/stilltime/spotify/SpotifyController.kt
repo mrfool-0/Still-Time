@@ -16,7 +16,7 @@ import com.spotify.protocol.types.PlayerState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-enum class SpotifyStatus { SETUP_REQUIRED, APP_MISSING, DISCONNECTED, CONNECTING, CONNECTED, ERROR }
+enum class SpotifyStatus { SETUP_REQUIRED, APP_MISSING, SDK_UNAVAILABLE, ACCESS_REQUIRED, DISCONNECTED, CONNECTING, CONNECTED, ERROR }
 
 data class SpotifyUiState(
     val status: SpotifyStatus = SpotifyStatus.DISCONNECTED,
@@ -30,7 +30,7 @@ data class SpotifyUiState(
 )
 
 /** Owns only a visible screen's IPC connection. Spotify remains responsible for audio playback. */
-class SpotifyController(private val context: Context) : AutoCloseable {
+class SpotifyController(private val context: Context) : StandbyPlayer {
     private val handler = Handler(Looper.getMainLooper())
     private var remote: SpotifyAppRemote? = null
     private var subscription: Subscription<PlayerState>? = null
@@ -39,21 +39,21 @@ class SpotifyController(private val context: Context) : AutoCloseable {
     private var artworkUri: String? = null
     private var timeout: Runnable? = null
     private val mutableState = MutableStateFlow(SpotifyUiState(status = initialStatus()))
-    val state = mutableState.asStateFlow()
+    override val state = mutableState.asStateFlow()
 
     private fun initialStatus(): SpotifyStatus = when {
         BuildConfig.SPOTIFY_CLIENT_ID.isBlank() -> SpotifyStatus.SETUP_REQUIRED
-        !SpotifyAppRemote.isSpotifyInstalled(context) -> SpotifyStatus.APP_MISSING
+        !SpotifyAppRemote.isSpotifyInstalled(context) -> if (SpotifyPackages.installed(context).isNotEmpty()) SpotifyStatus.SDK_UNAVAILABLE else SpotifyStatus.APP_MISSING
         else -> SpotifyStatus.DISCONNECTED
     }
 
-    fun setActive(value: Boolean) {
+    override fun setActive(value: Boolean) {
         if (value == active) return
         active = value
         if (value) connect(authorize = false) else disconnect()
     }
 
-    fun connect(authorize: Boolean = true) {
+    override fun connect(authorize: Boolean) {
         if (!active || remote?.isConnected == true || mutableState.value.status == SpotifyStatus.CONNECTING) return
         val status = initialStatus()
         if (status != SpotifyStatus.DISCONNECTED) {
@@ -103,7 +103,7 @@ class SpotifyController(private val context: Context) : AutoCloseable {
                             val message = when {
                                 throwable.javaClass.simpleName.contains("NotAuthorized") -> "Tap Connect to allow playback control in Spotify."
                                 throwable.javaClass.simpleName.contains("NotLoggedIn") -> "Sign in to the Spotify app, then reconnect."
-                                else -> "Could not connect. Check Spotify login, internet, and app registration."
+                                else -> "Could not connect (${throwable.javaClass.simpleName}). Try Device player in Customize, or check your Spotify login and registration."
                             }
                             fail(message)
                         }
@@ -141,9 +141,9 @@ class SpotifyController(private val context: Context) : AutoCloseable {
         }
     }
 
-    fun previous() { if (mutableState.value.canSkipPrevious) command { it.playerApi.skipPrevious() } }
-    fun next() { if (mutableState.value.canSkipNext) command { it.playerApi.skipNext() } }
-    fun togglePlayback() = command { if (mutableState.value.timeline.paused) it.playerApi.resume() else it.playerApi.pause() }
+    override fun previous() { if (mutableState.value.canSkipPrevious) command { it.playerApi.skipPrevious() } }
+    override fun next() { if (mutableState.value.canSkipNext) command { it.playerApi.skipNext() } }
+    override fun togglePlayback() = command { if (mutableState.value.timeline.paused) it.playerApi.resume() else it.playerApi.pause() }
 
     private fun command(action: (SpotifyAppRemote) -> CallResult<*>) {
         val appRemote = remote?.takeIf { active && it.isConnected } ?: return

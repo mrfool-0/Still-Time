@@ -24,6 +24,12 @@ The Apache-2.0 license for Stilltime's original code does **not** relicense thes
 
 Google Play's current intellectual-property policy is available at <https://support.google.com/googleplay/android-developer/answer/9888072>.
 
+### Original series-inspired reflections
+
+`series_motivation.tsv` contains 100 original Stilltime reflections, 20 per requested series. They are not quotations, translations, paraphrases of particular dialogue, or statements by fictional characters. Each card is marked “original reflection” and “inspired, not canon.” Names identify the inspiration only; no affiliation or endorsement is implied.
+
+Context links checked on 10 September 2026: [One Piece — VIZ](https://www.viz.com/one-piece), [Naruto — VIZ](https://www.viz.com/naruto), [Bleach — VIZ](https://www.viz.com/bleach), [Attack on Titan — Kodansha](https://kodansha.us/series/attack-on-titan/), and [Lord of Mysteries — Webnovel](https://www.webnovel.com/book/lord-of-mysteries_11022733006234505). The LOTM pack is novel-inspired. These pages identify the works; they are not sources of the original lines.
+
 ## Supplied wallpapers and theme references
 
 Version 1.1 incorporates eight JPEGs supplied by the user on 9 September 2026. They remain unmodified, including embedded artist marks, in `app/src/main/res/drawable-nodpi`. Their copyright belongs to their respective owners; supplying them for this private app does not establish a redistribution license. These images are excluded from the code's Apache-2.0 license. The screenshot references informed independent clock implementations; no phone frame or screenshot UI is bundled as a clock face.
