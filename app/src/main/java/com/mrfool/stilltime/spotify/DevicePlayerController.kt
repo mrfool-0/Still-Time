@@ -12,6 +12,9 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
+import android.support.v4.media.session.MediaControllerCompat
+import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,6 +45,12 @@ class DevicePlayerController(private val context: Context) : StandbyPlayer {
     private var active = false
     private var listening = false
     private var selected: MediaController? = null
+    private var compat: MediaControllerCompat? = null
+    private val compatCallback = object : MediaControllerCompat.Callback() {
+        override fun onSessionReady() = update()
+        override fun onShuffleModeChanged(shuffleMode: Int) = update()
+        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) = update()
+    }
     private val callback = object : MediaController.Callback() {
         override fun onMetadataChanged(metadata: MediaMetadata?) = update()
         override fun onPlaybackStateChanged(state: PlaybackState?) = update()
@@ -83,9 +92,15 @@ class DevicePlayerController(private val context: Context) : StandbyPlayer {
         val candidate = controllers.filter { it.packageName in SpotifyPackages.supported }
             .sortedByDescending { it.playbackState?.state == PlaybackState.STATE_PLAYING }.firstOrNull()
         if (selected?.sessionToken != candidate?.sessionToken) {
+            compat?.unregisterCallback(compatCallback)
+            compat = null
             selected?.unregisterCallback(callback)
             selected = candidate
             candidate?.registerCallback(callback, handler)
+            if (candidate != null) {
+                compat = MediaControllerCompat(context, MediaSessionCompat.Token.fromToken(candidate.sessionToken)!!)
+                    .also { it.registerCallback(compatCallback, handler) }
+            }
         }
         update()
     }
@@ -95,12 +110,29 @@ class DevicePlayerController(private val context: Context) : StandbyPlayer {
         val controller = selected
         mutableState.value = if (controller == null) SpotifyUiState(status = SpotifyStatus.CONNECTED,
             error = null)
-        else devicePlayerSnapshot(controller.metadata, controller.playbackState)
+        else devicePlayerSnapshot(controller.metadata, controller.playbackState).let { snapshot ->
+            val bridge = compat
+            val mode = if (bridge?.isSessionReady == true) bridge.shuffleMode else PlaybackStateCompat.SHUFFLE_MODE_INVALID
+            snapshot.copy(canShuffle = shuffleAvailable(bridge?.isSessionReady == true, bridge?.playbackState?.actions ?: 0, mode),
+                shuffled = mode == PlaybackStateCompat.SHUFFLE_MODE_ALL || mode == PlaybackStateCompat.SHUFFLE_MODE_GROUP)
+        }
     }
 
     override fun previous() { if (state.value.canSkipPrevious) command { it.skipToPrevious() } }
     override fun next() { if (state.value.canSkipNext) command { it.skipToNext() } }
     override fun togglePlayback() = command { if (state.value.timeline.paused) it.play() else it.pause() }
+    override fun seekTo(positionMs: Long, trackId: String) {
+        val target = seekTarget(state.value, positionMs, trackId) ?: return
+        command { it.seekTo(target) }
+    }
+    override fun toggleShuffle() {
+        if (!active || !state.value.canShuffle) return
+        try {
+            compat?.transportControls?.setShuffleMode(if (state.value.shuffled) PlaybackStateCompat.SHUFFLE_MODE_NONE else PlaybackStateCompat.SHUFFLE_MODE_ALL)
+        } catch (_: SecurityException) {
+            mutableState.value = state.value.copy(error = "Shuffle unavailable. Open Spotify.")
+        }
+    }
     private fun command(action: (MediaController.TransportControls) -> Unit) {
         if (!active) return
         try { selected?.transportControls?.let(action) }
@@ -111,10 +143,16 @@ class DevicePlayerController(private val context: Context) : StandbyPlayer {
         listening = false
         selected?.unregisterCallback(callback)
         selected = null
+        compat?.unregisterCallback(compatCallback)
+        compat = null
         mutableState.value = SpotifyUiState(status = SpotifyStatus.DISCONNECTED)
     }
     override fun close() { active = false; detach() }
 }
+
+internal fun shuffleAvailable(ready: Boolean, actions: Long, mode: Int): Boolean =
+    ready && actions and PlaybackStateCompat.ACTION_SET_SHUFFLE_MODE != 0L &&
+        mode in setOf(PlaybackStateCompat.SHUFFLE_MODE_NONE, PlaybackStateCompat.SHUFFLE_MODE_ALL, PlaybackStateCompat.SHUFFLE_MODE_GROUP)
 
 fun devicePlayerSnapshot(metadata: MediaMetadata?, playback: PlaybackState?): SpotifyUiState {
     val actions = playback?.actions ?: 0
@@ -125,5 +163,8 @@ fun devicePlayerSnapshot(metadata: MediaMetadata?, playback: PlaybackState?): Sp
         timeline = PlaybackTimeline(playback?.position ?: 0, metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0,
             playback?.lastPositionUpdateTime ?: 0, playback?.state != PlaybackState.STATE_PLAYING, playback?.playbackSpeed ?: 0f),
         canSkipPrevious = actions and PlaybackState.ACTION_SKIP_TO_PREVIOUS != 0L,
-        canSkipNext = actions and PlaybackState.ACTION_SKIP_TO_NEXT != 0L)
+        canSkipNext = actions and PlaybackState.ACTION_SKIP_TO_NEXT != 0L,
+        canSeek = actions and PlaybackState.ACTION_SEEK_TO != 0L && (metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0) > 0,
+        trackId = metadata?.getString(MediaMetadata.METADATA_KEY_MEDIA_ID)
+            ?: "${metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)}|${metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST)}|${metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION)}")
 }

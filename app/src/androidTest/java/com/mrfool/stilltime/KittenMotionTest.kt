@@ -26,12 +26,12 @@ class KittenMotionTest {
             MotivationEntry(MotivationCategory.WISDOM, "Look within.", "Marcus Aurelius", "Meditations", "https://www.gutenberg.org/ebooks/2680"))
         val active = mutableStateOf(true)
         rule.mainClock.autoAdvance = false
-        rule.setContent { KittenClock(ClockPreferences(style = ClockStyle.CAT), readout, Color(0xFFFFB7C5), Modifier, active.value) }
+        rule.setContent { KittenClock(ClockPreferences(style = ClockStyle.CAT, brightness = BrightnessMode.NIGHT), readout, Color(0xFFFFB7C5), Modifier, active.value) }
         rule.mainClock.advanceTimeBy(32)
         val awake = rule.onRoot().captureToImage().asAndroidBitmap()
-        rule.mainClock.advanceTimeBy(1000)
+        rule.mainClock.advanceTimeBy(200)
         assertTrue("No motion between gestures", awake.sameAs(rule.onRoot().captureToImage().asAndroidBitmap()))
-        rule.mainClock.advanceTimeBy(5600)
+        rule.mainClock.advanceTimeBy(640)
         assertFalse("Kitten must blink", awake.sameAs(rule.onRoot().captureToImage().asAndroidBitmap()))
         rule.runOnUiThread { active.value = false }
         rule.mainClock.advanceTimeBy(64)

@@ -17,3 +17,7 @@ fun playbackTimeLabel(milliseconds: Long): String {
     val seconds = milliseconds.coerceAtLeast(0) / 1000
     return "%d:%02d".format(java.util.Locale.ROOT, seconds / 60, seconds % 60)
 }
+
+internal fun seekTarget(state: SpotifyUiState, requestedMs: Long, trackId: String): Long? =
+    if (state.status == SpotifyStatus.CONNECTED && state.canSeek && state.trackId == trackId && state.timeline.durationMs > 0)
+        requestedMs.coerceIn(0, state.timeline.durationMs) else null

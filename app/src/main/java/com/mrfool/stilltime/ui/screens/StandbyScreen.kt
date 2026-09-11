@@ -215,7 +215,7 @@ fun StandbyScreen(
                     translationY = offset.yFraction * burnInDistancePx
                 }, onUseDevicePlayer = if (preferences.devicePlayer) null else {
                     { settingsStore.setDevicePlayer(true) }
-                })
+                }, onSeek = controller::seekTo, onShuffle = controller::toggleShuffle)
         } else {
         ClockFace(
             preferences = preferences,

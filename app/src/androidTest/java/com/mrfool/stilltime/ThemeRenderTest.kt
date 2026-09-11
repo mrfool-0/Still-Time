@@ -161,6 +161,41 @@ class ThemeRenderTest {
         rule.runOnIdle { assertTrue(selected) }
     }
 
+    @Test fun spotifyScrubsOnceAndShowsRealShuffleState() {
+        landscape()
+        val seeks = mutableListOf<Pair<Long, String>>()
+        var shuffles = 0
+        val state = mutableStateOf(SpotifyUiState(status = SpotifyStatus.CONNECTED, title = "A quiet afternoon",
+            artist = "Player controls · test fixture", trackId = "fixture-1", canSeek = true, canShuffle = true,
+            canSkipNext = true, canSkipPrevious = true, timeline = PlaybackTimeline(72_000, 213_000),
+            artwork = android.graphics.BitmapFactory.decodeResource(rule.activity.resources, R.drawable.wallpaper_moon)))
+        val preferences = mutableStateOf(ClockPreferences(style = ClockStyle.SPOTIFY, themeColors = false, accent = AccentChoice.AQUA))
+        rule.setContent { StilltimeTheme {
+            SpotifyClock(preferences.value, readout, state.value, true, true, {}, {}, {}, {}, {}, Modifier.fillMaxSize(),
+                onSeek = { ms, id -> seeks.add(ms to id) }, onShuffle = { shuffles++ })
+        } }
+        rule.onNodeWithTag("spotify_shuffle").assertIsOff().performClick()
+        rule.runOnIdle { assertEquals(1, shuffles); state.value = state.value.copy(shuffled = true) }
+        rule.onNodeWithTag("spotify_shuffle").assertIsOn()
+        rule.onNodeWithTag("spotify_seek").performTouchInput {
+            down(androidx.compose.ui.geometry.Offset(width * .25f, height / 2f))
+            moveTo(androidx.compose.ui.geometry.Offset(width * .65f, height / 2f))
+        }
+        rule.runOnIdle { assertTrue("Do not send seeks during drag", seeks.isEmpty()) }
+        rule.onNodeWithTag("spotify_seek").performTouchInput { up() }
+        rule.runOnIdle { assertEquals(1, seeks.size); assertEquals("fixture-1", seeks.single().second)
+            assertTrue(seeks.single().first in 100_000..160_000) }
+        rule.onNodeWithTag("spotify_seek").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(20_000f) }
+        rule.runOnIdle { assertEquals(20_000L, seeks.last().first) }
+        capture("spotify_redesign_aqua")
+        val before = rule.onRoot().captureToImage().asAndroidBitmap()
+        rule.runOnIdle { preferences.value = preferences.value.copy(accent = AccentChoice.GOLD) }
+        assertTrue("Player follows the theme accent", !before.sameAs(rule.onRoot().captureToImage().asAndroidBitmap()))
+        rule.runOnIdle { state.value = state.value.copy(canSeek = false, canShuffle = false) }
+        rule.onNodeWithTag("spotify_seek").assertIsNotEnabled()
+        rule.onNodeWithTag("spotify_shuffle").assertIsNotEnabled()
+    }
+
     @Test fun originalSeriesReflectionsRenderInLandscape() = renderSeries(false)
     @Test fun originalSeriesReflectionsRenderInPortrait() = renderSeries(true)
 

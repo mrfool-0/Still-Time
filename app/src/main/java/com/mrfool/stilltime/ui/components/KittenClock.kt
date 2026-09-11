@@ -30,16 +30,25 @@ internal fun KittenClock(preferences: ClockPreferences, readout: ClockReadout, a
     modifier: Modifier, active: Boolean) {
     val blink = remember { Animatable(0f) }
     val gesture = remember { Animatable(0f) }
-    val moving = active && preferences.catMotion && preferences.brightness != BrightnessMode.NIGHT
+    val moving = active && preferences.catMotion
     LaunchedEffect(moving) {
         blink.snapTo(0f); gesture.snapTo(0f)
         if (!moving) return@LaunchedEffect
+        // Greet on entry rather than looking frozen for the first several seconds.
+        delay(700)
+        if (currentCoroutineContext()[MotionDurationScale]?.scaleFactor != 0f) {
+            blink.animateTo(1f, tween(140))
+            delay(70)
+            blink.animateTo(0f, tween(220))
+            gesture.animateTo(1f, tween(1400))
+        }
         var count = 0
         while (isActive) {
             delay(if (count % 3 == 0) 6500 else 8500)
             if (currentCoroutineContext()[MotionDurationScale]?.scaleFactor == 0f) continue
-            blink.animateTo(1f, tween(110))
-            blink.animateTo(0f, tween(170))
+            blink.animateTo(1f, tween(140))
+            delay(70)
+            blink.animateTo(0f, tween(220))
             if (++count % 3 == 0) {
                 gesture.snapTo(0f)
                 gesture.animateTo(1f, tween(1400))
@@ -88,7 +97,7 @@ internal fun DrawScope.drawKitten(accent: Color, blink: Float, gesture: Float) {
         drawPath(path, fill); drawPath(path, ink, style = Stroke(3.5f, cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
     drawOval(accent.copy(alpha = .09f), Offset(52f, 383f), Size(268f, 24f))
-    rotate(gesture * -8f, Offset(281f, 341f)) {
+    rotate(gesture * -14f, Offset(281f, 341f)) {
         shape(Path().apply { moveTo(261f, 367f); cubicTo(348f, 350f, 342f, 285f, 310f, 267f)
             cubicTo(290f, 257f, 288f, 274f, 302f, 288f); cubicTo(326f, 315f, 311f, 342f, 257f, 344f); close() })
     }
@@ -99,8 +108,8 @@ internal fun DrawScope.drawKitten(accent: Color, blink: Float, gesture: Float) {
         moveTo(214f, 322f); quadraticTo(210f, 355f, 199f, 389f)
         moveTo(176f, 344f); lineTo(176f, 389f) }, ink, style = Stroke(2.5f, cap = StrokeCap.Round))
     for (x in listOf(116f, 126f, 228f, 238f)) drawLine(ink, Offset(x, 379f), Offset(x + 1, 388f), 2f, StrokeCap.Round)
-    rotate(gesture * 3f, Offset(178f, 244f)) {
-        rotate(gesture * -7f, Offset(97f, 131f)) {
+    rotate(gesture * 5f, Offset(178f, 244f)) {
+        rotate(gesture * -11f, Offset(97f, 131f)) {
             shape(Path().apply { moveTo(68f, 150f); quadraticTo(45f, 81f, 64f, 28f)
                 quadraticTo(107f, 36f, 140f, 80f); close() })
             shape(Path().apply { moveTo(74f, 128f); quadraticTo(57f, 80f, 69f, 42f)

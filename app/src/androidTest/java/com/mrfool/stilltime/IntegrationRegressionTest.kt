@@ -10,6 +10,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class IntegrationRegressionTest {
+    @Test fun shuffleRequiresAdvertisedSupportAndKnownState() {
+        val action = android.support.v4.media.session.PlaybackStateCompat.ACTION_SET_SHUFFLE_MODE
+        assertTrue(com.mrfool.stilltime.spotify.shuffleAvailable(true, action, 0))
+        assertTrue(com.mrfool.stilltime.spotify.shuffleAvailable(true, action, 1))
+        assertFalse(com.mrfool.stilltime.spotify.shuffleAvailable(false, action, 1))
+        assertFalse(com.mrfool.stilltime.spotify.shuffleAvailable(true, 0, 1))
+        assertFalse(com.mrfool.stilltime.spotify.shuffleAvailable(true, action, -1))
+    }
     @Test fun spotifyReflectionProviderSurvivesFullModeR8() {
         val provider = Class.forName("com.spotify.android.appremote.internal.ReleaseSpotifyLocator")
             .getConstructor().newInstance()
@@ -43,6 +51,10 @@ class IntegrationRegressionTest {
         assertTrue(state.canSkipNext)
         assertFalse(state.canSkipPrevious)
         assertFalse(state.timeline.paused)
+        assertFalse(state.canSeek)
+        val seekable = PlaybackState.Builder(playback).setActions(PlaybackState.ACTION_SEEK_TO).build()
+        assertTrue(devicePlayerSnapshot(metadata, seekable).canSeek)
+        assertFalse(devicePlayerSnapshot(null, seekable).canSeek)
         assertTrue(devicePlayerSnapshot(null, null).timeline.paused)
     }
 }

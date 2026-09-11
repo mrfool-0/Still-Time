@@ -13,8 +13,8 @@ android {
         applicationId = "com.mrfool.stilltime"
         minSdk = 26
         targetSdk = 37
-        versionCode = 4
-        versionName = "1.3.0"
+        versionCode = 5
+        versionName = "1.4.0"
 
         val spotifyClientId = providers.gradleProperty("SPOTIFY_CLIENT_ID").orElse("").get()
         val spotifyRedirectUri = providers.gradleProperty("SPOTIFY_REDIRECT_URI")
@@ -75,6 +75,8 @@ android {
 }
 
 dependencies {
+    // Compatibility bridge for Spotify's existing media-session shuffle protocol; no audio engine.
+    implementation("androidx.media:media:1.8.0")
     implementation(files("libs/spotify-app-remote-0.8.0.aar"))
     implementation("com.google.code.gson:gson:2.14.0")
     val composeBom = platform("androidx.compose:compose-bom:2026.08.00")

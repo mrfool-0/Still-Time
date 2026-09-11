@@ -1,17 +1,17 @@
 # Stilltime
 
-Stilltime turns an Android phone or tablet into a quiet bedside or desk clock. Version 1.3 adds a softly animated kitten, independent theme appearance, a cleaner menu, and a direct Android media-session path for Spotify.
+Stilltime turns an Android phone or tablet into a quiet bedside or desk clock. Version 1.4 refines the Spotify player with theme-matched styling, shuffle and touch seeking, and makes the kitten's greeting and gestures easier to see.
 
 ## Highlights
 
 - Fourteen faces: Pebble, Flip, Editorial, Orbit, Solar, Muse, Noir, Panorama, Redline, Night calendar, Chroma, Wallpapers, Spotify, and Kitten.
-- Kitten: original vector artwork inspired by the supplied reference, with glossy eyes, blush, slow blinks, an occasional ear twitch and tail sway. Gestures rest between events; previews, hidden screens and Night brightness are static. Animation can be disabled.
+- Kitten: original vector artwork inspired by the supplied reference, with glossy eyes, blush, a greeting blink, an occasional ear twitch and tail sway. Gestures rest between events; previews and hidden screens are static. Animation works at Night brightness when enabled, and respects the animation switch and system reduced motion.
 - Accent, original-color mode, digit tint and typography are saved independently for each theme, including previews. Upgrading preserves the previously selected theme's appearance; untouched themes keep their original looks.
 - Polished adaptive customization panel with real static theme previews, selection indicators, grouped controls, and pinned Close/Done actions.
 - Flip now has a two-stage, perspective split-flap animation with hinge shading and responsive numerals. It runs for 640 ms only when a value changes, stops when hidden, honors system animation scaling, and has an off switch.
 - Reference-inspired wide analog clocks in white or red, a real month calendar, and overlapping multicolor rounded digits.
 - Eight supplied wallpapers, three compositions (Cinema, Gallery, Poster), three dimming levels, and six typography choices.
-- Spotify landscape mode: equal left/right clock and player panels, album art, title/artist marquee, previous/play/pause/next, and elapsed/total track progress. Portrait falls back to a stacked layout.
+- Spotify landscape mode: equal left/right clock and player panels, rounded album art, theme-matched accents and typography, title/artist marquee, shuffle and previous/play/pause/next. Drag the seek bar to move within a track. Unsupported session controls are disabled; portrait falls back to a stacked layout.
 - Muse rotates through 303 entries every 30 seconds: wisdom, life notes, short anime moments, and 100 new original series-inspired reflections (20 each for One Piece, Naruto, Lord of Mysteries novel, Bleach, and Attack on Titan). Each series pack can be selected separately.
 - Muse's aurora background uses soft accent-colored light and fine contours. A 2.4-second drift accompanies each new thought, then rests. It has an off switch, respects system animation settings, and stops in menus, when hidden, and at Night brightness.
 - Every Muse card carries an author or organization, work/source title, and a tappable source URL.
@@ -27,7 +27,7 @@ Stilltime turns an Android phone or tablet into a quiet bedside or desk clock. V
 
 ![Kitten clock](docs/screenshots/v1.3/kitten-landscape.png)
 
-See [1.3 verification and installation notes](docs/VERIFICATION-1.3.md).
+See [1.4 verification and installation notes](docs/VERIFICATION-1.4.md).
 
 <p align="center">
   <img src="docs/screenshots/v1.1/panorama.png" alt="Panorama analog clock" width="48%" />
@@ -38,7 +38,7 @@ See [1.3 verification and installation notes](docs/VERIFICATION-1.3.md).
 
 The Spotify screenshot below uses an explicitly labelled test fixture to validate layout and controls, not a live Spotify session.
 
-![Spotify layout test fixture](docs/screenshots/v1.1/spotify_fixture.png)
+![Spotify layout and controls test fixture](docs/screenshots/v1.4/spotify-redesign-aqua.png)
 
 <p align="center">
   <img src="docs/screenshots/pebble.png" alt="Pebble clock face" width="23%" />

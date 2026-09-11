@@ -30,6 +30,10 @@ data class SpotifyUiState(
     val canSkipPrevious: Boolean = false,
     val canSkipNext: Boolean = false,
     val error: String? = null,
+    val trackId: String = "",
+    val canSeek: Boolean = false,
+    val canShuffle: Boolean = false,
+    val shuffled: Boolean = false,
 )
 
 /** Owns only a visible screen's IPC connection. Spotify remains responsible for audio playback. */
@@ -126,6 +130,10 @@ class SpotifyController(private val context: Context) : StandbyPlayer {
             timeline = PlaybackTimeline(player.playbackPosition, track?.duration ?: 0, SystemClock.elapsedRealtime(), player.isPaused, player.playbackSpeed),
             canSkipPrevious = player.playbackRestrictions?.canSkipPrev == true,
             canSkipNext = player.playbackRestrictions?.canSkipNext == true,
+            trackId = track?.uri.orEmpty(),
+            canSeek = player.playbackRestrictions?.canSeek == true && (track?.duration ?: 0) > 0,
+            canShuffle = player.playbackRestrictions?.canToggleShuffle == true,
+            shuffled = player.playbackOptions?.isShuffling == true,
             error = null,
         )
         if (changedArtwork && imageUri != null) {
@@ -142,6 +150,13 @@ class SpotifyController(private val context: Context) : StandbyPlayer {
     override fun previous() { if (mutableState.value.canSkipPrevious) command { it.playerApi.skipPrevious() } }
     override fun next() { if (mutableState.value.canSkipNext) command { it.playerApi.skipNext() } }
     override fun togglePlayback() = command { if (mutableState.value.timeline.paused) it.playerApi.resume() else it.playerApi.pause() }
+    override fun seekTo(positionMs: Long, trackId: String) {
+        val target = seekTarget(state.value, positionMs, trackId) ?: return
+        command { it.playerApi.seekTo(target) }
+    }
+    override fun toggleShuffle() {
+        if (state.value.canShuffle) command { it.playerApi.setShuffle(!state.value.shuffled) }
+    }
 
     private fun command(action: (SpotifyAppRemote) -> CallResult<*>) {
         val appRemote = remote?.takeIf { active && it.isConnected } ?: return

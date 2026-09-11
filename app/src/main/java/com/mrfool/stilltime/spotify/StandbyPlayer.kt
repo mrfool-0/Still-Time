@@ -9,4 +9,6 @@ interface StandbyPlayer : AutoCloseable {
     fun previous()
     fun next()
     fun togglePlayback()
+    fun seekTo(positionMs: Long, trackId: String)
+    fun toggleShuffle()
 }
